@@ -51,6 +51,13 @@ FRONTEND_ROOT = (
 )
 
 
+class DemoStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 class MCPBearerAuthMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -101,7 +108,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.mount("/mcp", MCPBearerAuthMiddleware(mcp_app))
-    app.mount("/assets", StaticFiles(directory=FRONTEND_ROOT), name="gst-portal-assets")
+    app.mount("/assets", DemoStaticFiles(directory=FRONTEND_ROOT), name="gst-portal-assets")
 
     @app.exception_handler(AuthenticationError)
     async def authentication_error(_: Request, exc: AuthenticationError) -> JSONResponse:
