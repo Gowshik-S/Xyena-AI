@@ -97,7 +97,7 @@ class DeliveryDemoService:
     async def _tracking_number(self, db: AsyncSession, tenant_id: str) -> str:
         alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         for _ in range(20):
-            candidate = "XY" + "".join(secrets.choice(alphabet) for _ in range(10))
+            candidate = "XY" + "".join(secrets.choice(alphabet) for _ in range(8))
             exists = await db.scalar(
                 select(Delivery.id).where(
                     Delivery.tenant_id == tenant_id,
@@ -537,8 +537,8 @@ class DeliveryDemoService:
                 changes = json.loads(correction.proposed_changes)
                 if "tracking_number" in changes:
                     tracking = changes["tracking_number"]
-                    if not isinstance(tracking, str) or len(tracking) != 12 or not tracking.startswith("XY"):
-                        raise DeliveryDemoDomainError("Replacement tracking must be a 12-character XY identifier.")
+                    if not isinstance(tracking, str) or len(tracking) != 10 or not tracking.startswith("XY"):
+                        raise DeliveryDemoDomainError("Replacement tracking must be a 10-character XY identifier.")
                     duplicate = await db.scalar(select(Delivery.id).where(
                         Delivery.tenant_id == actor.tenant_id,
                         Delivery.tracking_number == tracking,

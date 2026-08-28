@@ -35,7 +35,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="XY8942ABCDE1",
+            tracking_number="XY8A42B1C9",
             status="DELIVERED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -50,6 +50,7 @@ async def seed_demo_data() -> None:
             updated_by="buyer_receiver",
         )
         db.add(d1)
+        await db.flush()
 
         db.add(
             DeliveryItem(
@@ -144,7 +145,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="XY8943ABCDE2",
+            tracking_number="XY7K43D2M8",
             status="PARTIALLY_ACCEPTED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -159,6 +160,7 @@ async def seed_demo_data() -> None:
             updated_by="buyer_receiver",
         )
         db.add(d2)
+        await db.flush()
 
         db.add(
             DeliveryItem(
@@ -221,7 +223,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_oceanic_lines",
-            tracking_number="XY8812ABCDE3",
+            tracking_number="XY9P12E3R7",
             status="IN_TRANSIT",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, Pudong District, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, Port Area, NL"}',
@@ -236,6 +238,7 @@ async def seed_demo_data() -> None:
             updated_by="seller_operator",
         )
         db.add(d3)
+        await db.flush()
 
         db.add(
             DeliveryItem(
@@ -291,7 +294,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="XY8944ABCDE4",
+            tracking_number="XY6T44F4N2",
             status="DELIVERED_PENDING_ACCEPTANCE",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -306,6 +309,7 @@ async def seed_demo_data() -> None:
             updated_by="carrier_operator",
         )
         db.add(d4)
+        await db.flush()
 
         db.add(
             DeliveryItem(
@@ -376,7 +380,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="XY8945ABCDE5",
+            tracking_number="XY5V45G5Q3",
             status="REJECTED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -391,6 +395,7 @@ async def seed_demo_data() -> None:
             updated_by="buyer_receiver",
         )
         db.add(d5)
+        await db.flush()
 
         db.add(
             DeliveryItem(
