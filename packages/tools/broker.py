@@ -182,7 +182,7 @@ class ToolBroker:
                 raise ToolBrokerError("AUTHORIZATION_REJECTED", str(exc)) from exc
             call.authorization_id = consumed.authorization_id
 
-        return await self._call(db, call, canonical_request, server, tool, policy)
+        return await self._call(db, call, canonical_request, server, tool, version, policy)
 
     async def resume(self, db: AsyncSession, request: ToolCallResume) -> SafeToolResult:
         call = await db.scalar(
@@ -261,7 +261,7 @@ class ToolBroker:
             idempotency_key=call.idempotency_key,
             request_hash=call.request_hash,
         )
-        return await self._call(db, call, canonical_request, server, tool, policy)
+        return await self._call(db, call, canonical_request, server, tool, version, policy)
 
     async def _resolve(
         self, db: AsyncSession, request: ToolCallSubmit
@@ -365,6 +365,7 @@ class ToolBroker:
         request: CanonicalToolRequest,
         server: MCPServer,
         tool: MCPTool,
+        version: MCPToolVersion,
         policy: MCPToolPolicy,
     ) -> SafeToolResult:
         now = datetime.now(UTC)
@@ -389,7 +390,7 @@ class ToolBroker:
                     secret_ref=server.secret_ref,
                     timeout_seconds=float(policy.timeout_seconds),
                     # A timed-out side effect is UNKNOWN, never a safe automatic retry.
-                    max_retries=0 if policy.side_effects else server.max_retries,
+                    max_retries=0 if version.side_effects else server.max_retries,
                     allowed_egress_hosts=tuple(server.allowed_egress_hosts),
                 )
                 runtime_envelope = {
@@ -425,7 +426,7 @@ class ToolBroker:
             call.status = ToolCallStatus.SUCCEEDED.value
             result = await self._store_result(db, call, "SUCCEEDED", projection, policy)
         except Exception as exc:
-            outcome_unknown = handler is None and policy.side_effects
+            outcome_unknown = handler is None and version.side_effects
             attempt.status = "UNKNOWN" if outcome_unknown else "FAILED"
             attempt.completed_at = datetime.now(UTC)
             attempt.error_class = type(exc).__name__

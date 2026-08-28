@@ -46,19 +46,7 @@ def verify_runtime_scope(ctx: Context, expected_tool: str) -> RuntimeScope:
     expected_signature = hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(supplied_signature, expected_signature):
         raise BankDemoSecurityError("Xyena runtime scope signature is invalid.")
-    required = {
-        "tenant_id",
-        "organization_id",
-        "user_id",
-        "session_id",
-        "run_id",
-        "call_id",
-        "correlation_id",
-        "agent_name",
-        "canonical_name",
-        "purpose",
-        "request_hash",
-    }
+    required = set(RuntimeScope.__dataclass_fields__)
     if required - set(envelope):
         raise BankDemoSecurityError("Xyena runtime scope is incomplete.")
     if envelope["canonical_name"] != expected_tool:
