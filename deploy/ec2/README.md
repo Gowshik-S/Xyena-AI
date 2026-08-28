@@ -96,6 +96,16 @@ The generator safely creates database, service, MCP, portal, and Guardian signin
 - Command Code: set `XYENA_MODEL_PROVIDER=command_code`, `XYENA_COMMAND_CODE_API_KEY`, `XYENA_COMMAND_CODE_BASE_URL=https://api.commandcode.ai/provider/v1`, and a Command Code model identifier in `XYENA_OPENAI_MODEL`. Xyena uses the provider's OpenAI-compatible Chat Completions endpoint and enables its zero-data-retention header by default.
 - NVIDIA NIM: set `XYENA_MODEL_PROVIDER=nvidia_nim`, `XYENA_NVIDIA_NIM_API_KEY`, `XYENA_NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1`, and an NVIDIA-hosted model identifier such as `openai/gpt-oss-20b` in `XYENA_OPENAI_MODEL`. Xyena uses NIM's OpenAI-compatible Chat Completions and tool-calling interface.
 
+To configure NVIDIA NIM without exposing the key in shell history or opening the root-owned `.env`, run:
+
+```sh
+cd /home/ubuntu/Xyena-AI
+sudo python3 deploy/ec2/configure_model_provider.py nvidia_nim --model openai/gpt-oss-20b
+sudo docker compose --env-file .env -f compose.ec2.yaml up -d --force-recreate api worker
+```
+
+The first command prompts for the key with input hidden, updates `.env` atomically, keeps mode `0600`, and does not print the key.
+
 Command Code and the NVIDIA NIM chat configuration do not supply the embedding endpoint used by the current memory embedding worker. Without a separate OpenAI embedding key, durable text memories still work but new vector embeddings are skipped.
 
 Before opening authenticated core APIs to users, replace the placeholder OIDC issuer with the production identity provider and verify that `XYENA_DEV_AUTH_BYPASS=false` remains set.
