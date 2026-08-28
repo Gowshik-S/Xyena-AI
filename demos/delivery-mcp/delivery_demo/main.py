@@ -1,44 +1,45 @@
 import asyncio
+import hashlib
+import hmac
 import json
 import secrets
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
-from decimal import Decimal
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
+from .auth import ActorScope, authenticate_token, require_roles
+from .constants import READ_ROLES
 from .database import close_database, initialize_database, session
 from .mcp import mcp, mcp_app
-from .models import (
-    AuditEvent,
-    BuyerAcceptance,
-    Delivery,
-    DeliveryCorrection,
-    DeliveryEvent,
-    DeliveryItem,
-    ProofOfDelivery,
+from .models import AuditEvent, Delivery, OutboxEvent
+from .schemas import (
+    AcceptanceCreate,
+    CancellationRequest,
+    CorrectionCreate,
+    CorrectionReview,
+    DeliveryAttemptRequest,
+    DeliveryCreate,
+    DispatchRequest,
+    ExternalEventEnvelope,
+    ProofCreate,
+    ProofReview,
+    TransitEventRequest,
 )
 from .seed import seed_demo_data
-from .service import delivery_service, sse_listeners
+from .service import DeliveryDemoDomainError, delivery_service
 from .settings import get_settings
-
 
 SOURCE_FRONTEND_ROOT = Path(__file__).resolve().parents[1] / "frontend"
 PACKAGED_FRONTEND_ROOT = Path(__file__).resolve().parent / "frontend"
-FRONTEND_ROOT = (
-    SOURCE_FRONTEND_ROOT if SOURCE_FRONTEND_ROOT.is_dir() else PACKAGED_FRONTEND_ROOT
-)
-
-FRONTEND_PAGES = {
-    "/": "index.html",
-    "/deliveries": "deliveries.html",
-    "/detail": "detail.html",
-}
+FRONTEND_ROOT = SOURCE_FRONTEND_ROOT if SOURCE_FRONTEND_ROOT.is_dir() else PACKAGED_FRONTEND_ROOT
+FRONTEND_PAGES = {"/": "index.html", "/deliveries": "deliveries.html", "/detail": "detail.html"}
 
 
 class MCPBearerAuthMiddleware:
@@ -48,34 +49,35 @@ class MCPBearerAuthMiddleware:
     async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
         if scope.get("type") == "http":
             headers = {key.lower(): value for key, value in scope.get("headers", [])}
-            raw = headers.get(b"authorization", b"").decode("latin-1")
-            scheme, _, supplied = raw.partition(" ")
+            scheme, _, supplied = headers.get(b"authorization", b"").decode("latin-1").partition(" ")
             expected = get_settings().mcp_token.get_secret_value()
             if scheme.lower() != "bearer" or not secrets.compare_digest(supplied, expected):
-                body = json.dumps(
-                    {"code": "UNAUTHORIZED", "detail": "Invalid delivery demo MCP token."}
-                ).encode()
-                await send(
-                    {
-                        "type": "http.response.start",
-                        "status": 401,
-                        "headers": [(b"content-type", b"application/json")],
-                    }
-                )
+                body = json.dumps({"code": "UNAUTHORIZED", "detail": "Invalid delivery MCP token."}).encode()
+                await send({"type": "http.response.start", "status": 401, "headers": [(b"content-type", b"application/json")]})
                 await send({"type": "http.response.body", "body": body})
                 return
         await self.app(scope, receive, send)
 
 
-async def require_ui_token(
-    x_demo_token: Annotated[str | None, Header()] = None,
-) -> None:
-    expected = get_settings().ui_token.get_secret_value()
-    if x_demo_token is None or not secrets.compare_digest(x_demo_token, expected):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid demo UI token.",
-        )
+def _if_match(value: str) -> int:
+    normalized = value.strip().strip('W/').strip('"')
+    if not normalized.isdigit() or int(normalized) < 1:
+        raise HTTPException(status_code=400, detail="If-Match must contain a positive delivery version.")
+    return int(normalized)
+
+
+def _summary(delivery: Delivery) -> dict[str, Any]:
+    return {
+        "id": delivery.id, "delivery_number": delivery.delivery_number,
+        "purchase_order_id": delivery.purchase_order_id, "invoice_id": delivery.invoice_id,
+        "invoice_number": delivery.invoice_number, "seller_business_id": delivery.seller_business_id,
+        "buyer_id": delivery.buyer_id, "carrier_id": delivery.carrier_id,
+        "tracking_number": delivery.tracking_number, "status": delivery.status,
+        "declared_value": str(delivery.declared_value),
+        "verified_delivered_value": str(delivery.verified_delivered_value),
+        "exception_code": delivery.exception_code, "version": delivery.version,
+        "created_at": delivery.created_at.isoformat(), "updated_at": delivery.updated_at.isoformat(),
+    }
 
 
 @asynccontextmanager
@@ -90,10 +92,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="XYENA Synthetic Delivery and Fulfilment Demo",
-        description="Isolated synthetic delivery and verification demonstration platform.",
-        version="0.1.0",
-        lifespan=lifespan,
+        title="XYENA Delivery MCP",
+        description="Tenant-scoped synthetic delivery operations and source-evidence MCP service.",
+        version="1.0.0", openapi_version="3.1.0", lifespan=lifespan,
     )
     app.mount("/mcp", MCPBearerAuthMiddleware(mcp_app))
     app.mount("/assets", StaticFiles(directory=FRONTEND_ROOT), name="delivery-demo-assets")
@@ -104,446 +105,179 @@ def create_app() -> FastAPI:
         return page
 
     for route, filename in FRONTEND_PAGES.items():
-        app.add_api_route(
-            route,
-            frontend_page(filename),
-            methods=["GET"],
-            include_in_schema=False,
-            name=f"frontend-{filename.removesuffix('.html')}",
-        )
+        app.add_api_route(route, frontend_page(filename), methods=["GET"], include_in_schema=False)
 
-    # --- Health Endpoints ---
+    @app.exception_handler(DeliveryDemoDomainError)
+    async def domain_error(_: Request, exc: DeliveryDemoDomainError):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=exc.status_code, content={"code": exc.__class__.__name__, "detail": str(exc)})
 
     @app.get("/health/live", tags=["health"])
     async def live() -> dict[str, str]:
-        return {"status": "live", "service": "xyena-synthetic-delivery-demo"}
+        return {"status": "live", "service": "xyena-delivery-mcp"}
 
     @app.get("/health/ready", tags=["health"])
     async def ready() -> dict[str, str]:
         async with session() as db:
             await db.execute(select(func.count()).select_from(Delivery))
-        return {"status": "ready", "service": "xyena-synthetic-delivery-demo"}
+        return {"status": "ready", "service": "xyena-delivery-mcp"}
 
-    # --- SSE Stream Endpoint ---
+    read_scope = require_roles(*READ_ROLES)
+
+    @app.get("/api/v1/session", tags=["operations"])
+    async def current_session(actor: ActorScope = Depends(read_scope)) -> dict[str, str]:
+        return {"role": actor.role, "actor_id": actor.actor_id, "tenant_id": actor.tenant_id}
+
+    @app.get("/api/v1/dashboard", tags=["operations"])
+    async def dashboard(actor: ActorScope = Depends(read_scope)) -> dict[str, Any]:
+        return await delivery_service.dashboard(actor.tenant_id)
+
+    @app.get("/api/v1/deliveries", tags=["operations"])
+    async def list_deliveries(
+        search: str | None = None, delivery_status: str | None = Query(None, alias="status"),
+        actor: ActorScope = Depends(read_scope),
+    ) -> list[dict[str, Any]]:
+        return [_summary(d) for d in await delivery_service.list_deliveries(actor.tenant_id, search, delivery_status)]
+
+    @app.post("/api/v1/deliveries", status_code=201, tags=["operations"])
+    async def create_delivery(
+        body: DeliveryCreate, actor: ActorScope = Depends(require_roles("SELLER_OPERATOR", "DEMO_ADMIN")),
+    ) -> dict[str, Any]:
+        delivery = await delivery_service.create_delivery(actor, body)
+        return _summary(delivery)
+
+    @app.get("/api/v1/deliveries/{delivery_id}", tags=["operations"])
+    async def get_delivery(delivery_id: str, actor: ActorScope = Depends(read_scope)) -> dict[str, Any]:
+        result = await delivery_service.get_delivery(actor.tenant_id, delivery_id)
+        delivery = result["delivery"]
+        return {
+            **_summary(delivery),
+            "seller_gstin": delivery.seller_gstin, "buyer_gstin": delivery.buyer_gstin,
+            "ship_from": json.loads(delivery.ship_from), "ship_to": json.loads(delivery.ship_to),
+            "dispatch_date": delivery.dispatch_date.isoformat() if delivery.dispatch_date else None,
+            "expected_delivery_date": delivery.expected_delivery_date.isoformat() if delivery.expected_delivery_date else None,
+            "delivered_at": delivery.delivered_at.isoformat() if delivery.delivered_at else None,
+            "currency": delivery.currency,
+            "items": [{"id": i.id, "po_line_id": i.po_line_id, "invoice_line_id": i.invoice_line_id, "sku": i.sku, "description": i.description, "unit": i.unit, "ordered_quantity": str(i.ordered_quantity), "dispatched_quantity": str(i.dispatched_quantity), "delivered_quantity": str(i.delivered_quantity), "accepted_quantity": str(i.accepted_quantity), "rejected_quantity": str(i.rejected_quantity), "supported_unit_value": str(i.supported_unit_value), "rejection_reason": i.rejection_reason, "version": i.version} for i in result["items"]],
+            "events": [{"id": e.id, "event_type": e.event_type, "occurred_at": e.occurred_at.isoformat(), "actor": e.actor, "location": json.loads(e.location) if e.location else None, "notes": e.notes, "prior_status": e.prior_status, "new_status": e.new_status, "version": e.version} for e in result["events"]],
+            "proofs": [{"id": p.id, "proof_type": p.proof_type, "content_hash": p.content_hash, "mime_type": p.mime_type, "verification_status": p.verification_status, "captured_at": p.captured_at.isoformat(), "security_flags": json.loads(p.security_flags or "[]")} for p in result["proofs"]],
+            "acceptances": [{"id": a.id, "status": a.status, "accepted_value": str(a.accepted_value), "occurred_at": a.occurred_at.isoformat(), "items": json.loads(a.item_level_acceptance)} for a in result["acceptances"]],
+            "corrections": [{"id": c.id, "correction_type": c.correction_type, "reason": c.reason, "status": c.status, "requester": c.requester, "reviewer": c.reviewer, "proposed_changes": json.loads(c.proposed_changes)} for c in result["corrections"]],
+        }
+
+    Match = Annotated[str, Header(alias="If-Match")]
+
+    @app.post("/api/v1/deliveries/{delivery_id}/ready", tags=["workflow"])
+    async def mark_ready(delivery_id: str, if_match: Match, actor: ActorScope = Depends(require_roles("SELLER_OPERATOR", "DEMO_ADMIN"))) -> dict[str, Any]:
+        return _summary(await delivery_service.mark_ready(actor, delivery_id, _if_match(if_match)))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/dispatch", tags=["workflow"])
+    async def dispatch(delivery_id: str, body: DispatchRequest, if_match: Match, actor: ActorScope = Depends(require_roles("SELLER_OPERATOR", "DEMO_ADMIN"))) -> dict[str, Any]:
+        return _summary(await delivery_service.dispatch_delivery(actor, delivery_id, _if_match(if_match), body))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/events", tags=["workflow"])
+    async def transit(delivery_id: str, body: TransitEventRequest, if_match: Match, actor: ActorScope = Depends(require_roles("CARRIER_OPERATOR", "DEMO_ADMIN"))) -> dict[str, Any]:
+        return _summary(await delivery_service.record_transit_event(actor, delivery_id, _if_match(if_match), body))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/delivery-attempt", tags=["workflow"])
+    async def attempt(delivery_id: str, body: DeliveryAttemptRequest, if_match: Match, actor: ActorScope = Depends(require_roles("CARRIER_OPERATOR", "DEMO_ADMIN"))) -> dict[str, Any]:
+        return _summary(await delivery_service.record_delivery_attempt(actor, delivery_id, _if_match(if_match), body))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/proofs", status_code=201, tags=["workflow"])
+    async def capture_proof(delivery_id: str, body: ProofCreate, if_match: Match, actor: ActorScope = Depends(require_roles("CARRIER_OPERATOR", "DEMO_ADMIN"))) -> dict[str, Any]:
+        proof = await delivery_service.capture_pod(actor, delivery_id, _if_match(if_match), body)
+        return {"id": proof.id, "verification_status": proof.verification_status, "content_hash": proof.content_hash}
+
+    @app.post("/api/v1/deliveries/{delivery_id}/proofs/{proof_id}/review", tags=["workflow"])
+    async def review_proof(delivery_id: str, proof_id: str, body: ProofReview, if_match: Match, actor: ActorScope = Depends(require_roles("DELIVERY_REVIEWER"))) -> dict[str, Any]:
+        return _summary(await delivery_service.verify_pod(actor, delivery_id, proof_id, _if_match(if_match), body.verified, body.rejection_reason))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/acceptance", tags=["workflow"])
+    async def acceptance(delivery_id: str, body: AcceptanceCreate, if_match: Match, actor: ActorScope = Depends(require_roles("BUYER_RECEIVER", "DEMO_ADMIN"))) -> dict[str, Any]:
+        return _summary(await delivery_service.record_buyer_acceptance(actor, delivery_id, _if_match(if_match), body))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/cancel", tags=["workflow"])
+    async def cancel(delivery_id: str, body: CancellationRequest, if_match: Match, actor: ActorScope = Depends(require_roles("SELLER_OPERATOR", "DELIVERY_REVIEWER"))) -> dict[str, Any]:
+        return _summary(await delivery_service.cancel_delivery(actor, delivery_id, _if_match(if_match), body.reason))
+
+    @app.post("/api/v1/deliveries/{delivery_id}/corrections", status_code=201, tags=["workflow"])
+    async def correction(delivery_id: str, body: CorrectionCreate, if_match: Match, actor: ActorScope = Depends(require_roles("SELLER_OPERATOR", "CARRIER_OPERATOR", "BUYER_RECEIVER"))) -> dict[str, Any]:
+        record = await delivery_service.propose_correction(actor, delivery_id, _if_match(if_match), body)
+        return {"id": record.id, "status": record.status}
+
+    @app.post("/api/v1/corrections/{correction_id}/review", tags=["workflow"])
+    async def review_correction(correction_id: str, body: CorrectionReview, if_match: Match, actor: ActorScope = Depends(require_roles("DELIVERY_REVIEWER"))) -> dict[str, Any]:
+        return _summary(await delivery_service.review_correction(actor, correction_id, _if_match(if_match), body.approve, body.reason))
+
+    @app.post("/api/v1/events/inbox", tags=["integration"])
+    async def receive_event(request: Request, x_xyena_signature: Annotated[str, Header(alias="X-Xyena-Signature")]) -> dict[str, str]:
+        raw = await request.body()
+        expected = hmac.new(get_settings().event_signing_key.get_secret_value().encode(), raw, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(x_xyena_signature, expected):
+            raise HTTPException(status_code=401, detail="Invalid event signature.")
+        envelope = ExternalEventEnvelope.model_validate_json(raw)
+        result = await delivery_service.consume_external_event(envelope, hashlib.sha256(raw).hexdigest())
+        return {"status": result, "event_id": envelope.event_id}
 
     @app.get("/api/v1/events/stream", tags=["events"])
-    async def events_stream() -> StreamingResponse:
-        async def event_generator():
-            queue = asyncio.Queue()
-            sse_listeners.append(queue)
-            try:
-                while True:
-                    data = await queue.get()
-                    yield f"data: {json.dumps(data)}\n\n"
-            except asyncio.CancelledError:
-                pass
-            finally:
-                sse_listeners.remove(queue)
+    async def event_stream(token: str = Query(...), after: str | None = Query(None)) -> StreamingResponse:
+        actor = authenticate_token(token)
 
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
-        )
+        async def generator():
+            cursor_time = datetime.now(UTC)
+            if after:
+                async with session() as db:
+                    previous = await db.scalar(
+                        select(OutboxEvent).where(
+                            OutboxEvent.id == after,
+                            OutboxEvent.tenant_id == actor.tenant_id,
+                        )
+                    )
+                if previous:
+                    cursor_time = previous.created_at
+                    if cursor_time.tzinfo is None:
+                        cursor_time = cursor_time.replace(tzinfo=UTC)
+            while True:
+                async with session() as db:
+                    query = select(OutboxEvent).where(
+                        OutboxEvent.tenant_id == actor.tenant_id,
+                        OutboxEvent.created_at > cursor_time,
+                    )
+                    events = (await db.scalars(query.order_by(OutboxEvent.created_at).limit(100))).all()
+                if events:
+                    for event in events:
+                        cursor_time = event.created_at
+                        if cursor_time.tzinfo is None:
+                            cursor_time = cursor_time.replace(tzinfo=UTC)
+                        yield f"id: {event.id}\nevent: delivery\ndata: {event.payload}\n\n"
+                else:
+                    yield ": keepalive\n\n"
+                await asyncio.sleep(2)
 
-    # --- REST API Endpoints ---
+        return StreamingResponse(generator(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-    @app.get("/api/v1/dashboard", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def get_dashboard() -> dict[str, Any]:
+    @app.get("/api/v1/audit", tags=["administration"])
+    async def audit(actor: ActorScope = Depends(require_roles("DELIVERY_REVIEWER", "DEMO_ADMIN"))) -> list[dict[str, Any]]:
         async with session() as db:
-            # Counts by status
-            deliveries = (await db.scalars(select(Delivery))).all()
-            counts = {
-                "CREATED": 0,
-                "READY_TO_DISPATCH": 0,
-                "DISPATCHED": 0,
-                "IN_TRANSIT": 0,
-                "OUT_FOR_DELIVERY": 0,
-                "DELIVERED_PENDING_ACCEPTANCE": 0,
-                "PARTIAL_PENDING_ACCEPTANCE": 0,
-                "DELIVERED": 0,
-                "PARTIALLY_ACCEPTED": 0,
-                "REJECTED": 0,
-                "DELIVERY_FAILED": 0,
-                "CANCELLED": 0,
-            }
-            for d in deliveries:
-                counts[d.status] = counts.get(d.status, 0) + 1
+            rows = (await db.scalars(select(AuditEvent).where(AuditEvent.tenant_id == actor.tenant_id).order_by(AuditEvent.occurred_at.desc()).limit(250))).all()
+            return [{"id": r.id, "event_type": r.event_type, "aggregate_id": r.aggregate_id, "aggregate_version": r.aggregate_version, "actor_id": r.actor_id, "reason": r.reason, "before_hash": r.before_hash, "after_hash": r.after_hash, "correlation_id": r.correlation_id, "occurred_at": r.occurred_at.isoformat()} for r in rows]
 
-            # Value totals
-            total_accepted_val = sum(d.verified_delivered_value for d in deliveries)
-            total_declared_val = sum(d.declared_value for d in deliveries)
-
-            # Aging Deliveries (Late)
-            # Simulated based on seeded data
-            aging = {"1_day": 0, "3_days": 0, "5_plus_days": 0}
-            for d in deliveries:
-                if d.status in ("DISPATCHED", "IN_TRANSIT", "OUT_FOR_DELIVERY") and d.expected_delivery_date:
-                    days_over = (date.today() - d.expected_delivery_date).days
-                    if days_over >= 5:
-                        aging["5_plus_days"] += 1
-                    elif days_over >= 3:
-                        aging["3_days"] += 1
-                    elif days_over >= 1:
-                        aging["1_day"] += 1
-
-            # Critical Alerts (Exceptions and POD / Invoice Mismatches)
-            alerts = []
-            for d in deliveries:
-                if d.exception_code:
-                    alerts.append({
-                        "delivery_id": d.id,
-                        "delivery_number": d.delivery_number,
-                        "type": d.exception_code,
-                        "message": f"Exception code '{d.exception_code}' raised on shipment.",
-                    })
-
-            # Query recent audit events
-            recent_events = (
-                await db.scalars(
-                    select(AuditEvent).order_by(AuditEvent.occurred_at.desc()).limit(10)
-                )
-            ).all()
-
-            return {
-                "counts": counts,
-                "total_accepted_value": str(total_accepted_val),
-                "total_declared_value": str(total_declared_val),
-                "aging_report": aging,
-                "alerts": alerts,
-                "recent_audit_trail": [
-                    {
-                        "id": audit.id,
-                        "event_type": audit.event_type,
-                        "aggregate_type": audit.aggregate_type,
-                        "aggregate_id": audit.aggregate_id,
-                        "actor_id": audit.actor_id,
-                        "occurred_at": audit.occurred_at.isoformat(),
-                    }
-                    for audit in recent_events
-                ],
-            }
-
-    @app.get("/api/v1/deliveries", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def list_deliveries(
-        search: str | None = None,
-        seller: str | None = None,
-        buyer: str | None = None,
-        carrier: str | None = None,
-        status: str | None = None,
-    ) -> list[dict[str, Any]]:
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics(actor: ActorScope = Depends(require_roles("DELIVERY_REVIEWER", "DEMO_ADMIN"))):
+        from fastapi.responses import PlainTextResponse
         async with session() as db:
-            query = select(Delivery)
-            if search:
-                query = query.where(
-                    Delivery.delivery_number.contains(search)
-                    | Delivery.purchase_order_id.contains(search)
-                    | Delivery.invoice_number.contains(search)
-                )
-            if seller:
-                query = query.where(Delivery.seller_business_id == seller)
-            if buyer:
-                query = query.where(Delivery.buyer_id == buyer)
-            if carrier:
-                query = query.where(Delivery.carrier_id == carrier)
-            if status:
-                query = query.where(Delivery.status == status)
+            count = await db.scalar(select(func.count()).select_from(Delivery).where(Delivery.tenant_id == actor.tenant_id))
+        return PlainTextResponse(f"xyena_delivery_records {count or 0}\n")
 
-            deliveries = (await db.scalars(query.order_by(Delivery.created_at.desc()))).all()
-            return [
-                {
-                    "id": d.id,
-                    "delivery_number": d.delivery_number,
-                    "purchase_order_id": d.purchase_order_id,
-                    "invoice_number": d.invoice_number,
-                    "seller_business_id": d.seller_business_id,
-                    "buyer_id": d.buyer_id,
-                    "carrier_id": d.carrier_id,
-                    "tracking_number": d.tracking_number,
-                    "status": d.status,
-                    "declared_value": str(d.declared_value),
-                    "verified_delivered_value": str(d.verified_delivered_value),
-                    "created_at": d.created_at.isoformat(),
-                }
-                for d in deliveries
-            ]
-
-    @app.post("/api/v1/deliveries", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def create_delivery(payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            delivery = await delivery_service.create_delivery(
-                tenant_id=payload.get("tenant_id", "00000000-0000-4000-8000-000000000101"),
-                delivery_number=payload["delivery_number"],
-                purchase_order_id=payload["purchase_order_id"],
-                invoice_id=payload.get("invoice_id"),
-                invoice_number=payload.get("invoice_number"),
-                seller_business_id=payload["seller_business_id"],
-                seller_gstin=payload["seller_gstin"],
-                buyer_id=payload["buyer_id"],
-                buyer_gstin=payload["buyer_gstin"],
-                ship_from=payload["ship_from"],
-                ship_to=payload["ship_to"],
-                currency=payload.get("currency", "INR"),
-                declared_value=Decimal(str(payload["declared_value"])),
-                items_data=payload["items"],
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS", "delivery_id": delivery.id}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.get("/api/v1/deliveries/{deliveryId}", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def get_delivery_details(deliveryId: str) -> dict[str, Any]:
-        try:
-            res = await delivery_service.get_delivery(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-            )
-            d = res["delivery"]
-            return {
-                "id": d.id,
-                "delivery_number": d.delivery_number,
-                "purchase_order_id": d.purchase_order_id,
-                "invoice_id": d.invoice_id,
-                "invoice_number": d.invoice_number,
-                "seller_business_id": d.seller_business_id,
-                "buyer_id": d.buyer_id,
-                "carrier_id": d.carrier_id,
-                "tracking_number": d.tracking_number,
-                "status": d.status,
-                "ship_from": json.loads(d.ship_from),
-                "ship_to": json.loads(d.ship_to),
-                "dispatch_date": d.dispatch_date.isoformat() if d.dispatch_date else None,
-                "expected_delivery_date": d.expected_delivery_date.isoformat() if d.expected_delivery_date else None,
-                "delivered_at": d.delivered_at.isoformat() if d.delivered_at else None,
-                "currency": d.currency,
-                "declared_value": str(d.declared_value),
-                "verified_delivered_value": str(d.verified_delivered_value),
-                "exception_code": d.exception_code,
-                "version": d.version,
-                "items": [
-                    {
-                        "id": item.id,
-                        "sku": item.sku,
-                        "description": item.description,
-                        "unit": item.unit,
-                        "ordered_quantity": str(item.ordered_quantity),
-                        "dispatched_quantity": str(item.dispatched_quantity),
-                        "delivered_quantity": str(item.delivered_quantity),
-                        "accepted_quantity": str(item.accepted_quantity),
-                        "rejected_quantity": str(item.rejected_quantity),
-                        "supported_unit_value": str(item.supported_unit_value),
-                        "rejection_reason": item.rejection_reason,
-                    }
-                    for item in res["items"]
-                ],
-                "events": [
-                    {
-                        "event_type": event.event_type,
-                        "occurred_at": event.occurred_at.isoformat(),
-                        "actor": event.actor,
-                        "location": event.location,
-                        "notes": event.notes,
-                        "prior_status": event.prior_status,
-                        "new_status": event.new_status,
-                    }
-                    for event in res["events"]
-                ],
-                "proofs": [
-                    {
-                        "id": pod.id,
-                        "proof_type": pod.proof_type,
-                        "verification_status": pod.verification_status,
-                        "captured_at": pod.captured_at.isoformat(),
-                        "recipient_name": pod.recipient_name,
-                    }
-                    for pod in res["proofs"]
-                ],
-                "acceptances": [
-                    {
-                        "status": acc.status,
-                        "accepted_value": str(acc.accepted_value),
-                        "occurred_at": acc.occurred_at.isoformat(),
-                    }
-                    for acc in res["acceptances"]
-                ],
-                "corrections": [
-                    {
-                        "id": corr.id,
-                        "correction_type": corr.correction_type,
-                        "reason": corr.reason,
-                        "status": corr.status,
-                    }
-                    for corr in res["corrections"]
-                ],
-            }
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=404, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/ready", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def mark_delivery_ready(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.mark_ready(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/dispatch", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def dispatch_delivery(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            items_dispatch = {
-                sku: Decimal(str(qty))
-                for sku, qty in payload.get("items_dispatch", {}).items()
-            }
-            await delivery_service.dispatch_delivery(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                carrier_id=payload["carrier_id"],
-                tracking_number=payload["tracking_number"],
-                items_dispatch=items_dispatch,
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/events", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def record_transit_event(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.record_transit_event(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                event_type=payload["event_type"],
-                location=payload["location"],
-                notes=payload.get("notes"),
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/delivery-attempt", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def record_attempt(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            items_delivered = {
-                sku: Decimal(str(qty))
-                for sku, qty in payload.get("items_delivered", {}).items()
-            }
-            await delivery_service.record_delivery_attempt(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                success=payload["success"],
-                items_delivered=items_delivered,
-                failure_reason=payload.get("failure_reason"),
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/proofs", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def capture_pod(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            pod = await delivery_service.capture_pod(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                proof_type=payload["proof_type"],
-                restricted_object_key=payload["restricted_object_key"],
-                mime_type=payload["mime_type"],
-                recipient_token=payload.get("recipient_token"),
-                recipient_name=payload.get("recipient_name"),
-                recipient_role=payload.get("recipient_role"),
-                security_flags=payload.get("security_flags", []),
-                actor=payload.get("actor", "system"),
-            )
-            # Auto approve POD after capture for demo convenience
-            await delivery_service.verify_pod(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                pod_id=pod.id,
-                verified=True,
-                rejection_reason=None,
-                actor="delivery_reviewer",
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/acceptance", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def record_acceptance(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.record_buyer_acceptance(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                status=payload["status"],
-                items_acceptance=payload["items_acceptance"],
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/cancel", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def cancel_delivery(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.cancel_delivery(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                reason=payload["reason"],
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/deliveries/{deliveryId}/corrections", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def propose_correction(deliveryId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            corr = await delivery_service.propose_correction(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                delivery_id=deliveryId,
-                correction_type=payload["correction_type"],
-                proposed_changes=payload["proposed_changes"],
-                reason=payload["reason"],
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS", "correction_id": corr.id}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/corrections/{correctionId}/approve", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def approve_correction(correctionId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.review_correction(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                correction_id=correctionId,
-                approve=True,
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/v1/corrections/{correctionId}/reject", dependencies=[Depends(require_ui_token)], tags=["operations"])
-    async def reject_correction(correctionId: str, payload: dict[str, Any]) -> dict[str, Any]:
-        try:
-            await delivery_service.review_correction(
-                tenant_id="00000000-0000-4000-8000-000000000101",
-                correction_id=correctionId,
-                approve=False,
-                actor=payload.get("actor", "system"),
-            )
-            return {"status": "SUCCESS"}
-        except DeliveryDemoDomainError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+    @app.get("/api/v1/admin/scenarios", tags=["administration"])
+    async def scenarios(_: ActorScope = Depends(require_roles("DEMO_ADMIN"))) -> list[dict[str, str]]:
+        return [
+            {"id": "accepted", "purpose": "fully accepted delivery"},
+            {"id": "partial", "purpose": "short and partially accepted delivery"},
+            {"id": "source-mismatch", "purpose": "invoice identity exception"},
+            {"id": "proof-review", "purpose": "rejected and replacement proof"},
+            {"id": "untrusted-note", "purpose": "prompt-injection-shaped business text"},
+        ]
 
     return app
 
@@ -553,14 +287,8 @@ app = create_app()
 
 def run() -> None:
     import uvicorn
-
     settings = get_settings()
-    uvicorn.run(
-        "delivery_demo.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=False,
-    )
+    uvicorn.run("delivery_demo.main:app", host=settings.host, port=settings.port, reload=False)
 
 
 if __name__ == "__main__":
