@@ -179,6 +179,9 @@ services:
   api:
     <<: *core
     command: ["python", "-m", "apps.api.main"]
+    environment:
+      XYENA_LIVE_DEMO_ENABLED: "true"
+      XYENA_LIVE_DEMO_TOKEN: ${DEMO_UI_TOKEN:-xyena-demo}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:

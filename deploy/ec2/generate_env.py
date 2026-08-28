@@ -91,6 +91,8 @@ def main() -> None:
         "XYENA_MCP_BASE_URL": "http://mcp-server:8081",
         "XYENA_SERVICE_TOKEN": service_token,
         "XYENA_MCP_ADMIN_TOKEN": mcp_admin_token,
+        "XYENA_LIVE_DEMO_ENABLED": "true",
+        "XYENA_LIVE_DEMO_TOKEN": "xyena-demo",
         "XYENA_GUARDIAN_SIGNING_KEY": guardian_signing_key,
         "XYENA_GUARDIAN_VERIFY_KEY": guardian_verify_key,
         "XYENA_OBJECT_STORE_ENDPOINT": "http://minio:9000",

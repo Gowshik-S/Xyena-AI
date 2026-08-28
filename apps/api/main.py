@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.errors import register_error_handlers
 from apps.api.middleware import CorrelationMiddleware
-from apps.api.routes import approvals, conversations, data, health, memory, runs, sessions
+from apps.api.routes import approvals, conversations, data, demo, health, memory, runs, sessions
 from packages.config import get_settings
 from packages.observability import configure_logging, configure_telemetry
 from packages.persistence import get_database
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(approvals.router)
     app.include_router(memory.router)
     app.include_router(data.router)
+    app.include_router(demo.router)
     register_error_handlers(app)
     configure_telemetry(app, "xyena-api")
     return app

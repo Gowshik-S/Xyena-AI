@@ -6,6 +6,7 @@ const navItems = [
   ['How it works', '#process'],
   ['Guardian', '#guardian'],
   ['Live architecture', '/architecture-live'],
+  ['Verify live', '/live-demo'],
 ]
 
 const agents = [
@@ -373,7 +374,7 @@ function App() {
                 <TextReveal as="span" delay={100}>as legitimate intent.</TextReveal>
               </h2>
               <p>Guardian verifies the action - not just the credentials - at the final safe moment before money or financial state can move.</p>
-              <a className="text-link text-link--maroon" href="/architecture-live">Open the live architecture <Arrow /></a>
+              <a className="text-link text-link--maroon" href="/live-demo">Verify the platform live <Arrow /></a>
             </div>
 
             <div className="guardian-matrix js-reveal">
@@ -470,7 +471,7 @@ function App() {
           <Logo inverse />
           <p>Secure autonomous supply-finance orchestration for MSMEs, lenders and enterprise risk teams.</p>
           <div className="site-footer__links">
-            <a href="#platform">Platform</a><a href="#guardian">Guardian</a><a href="/architecture-live">Live architecture</a>
+            <a href="#platform">Platform</a><a href="#guardian">Guardian</a><a href="/architecture-live">Live architecture</a><a href="/live-demo">Verify live</a>
           </div>
         </div>
         <div className="shell site-footer__bottom"><span>© 2026 XYENA Enterprise AI</span><span>Verified receivables. Governed action.</span></div>

@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     mcp_base_url: AnyHttpUrl = "http://mcp-server:8081"
     service_token: SecretStr | None = None
     mcp_admin_token: SecretStr | None = None
+    live_demo_enabled: bool = False
+    live_demo_token: SecretStr | None = None
     guardian_signing_key: SecretStr | None = None
     guardian_verify_key: SecretStr | None = None
 
@@ -66,6 +68,7 @@ class Settings(BaseSettings):
         "nvidia_nim_api_keys",
         "service_token",
         "mcp_admin_token",
+        "live_demo_token",
         "guardian_signing_key",
         "guardian_verify_key",
         "object_store_access_key",

@@ -1,4 +1,4 @@
-from . import conversations, health, runs, sessions
+from . import conversations, demo, health, runs, sessions
 
-__all__ = ["conversations", "health", "runs", "sessions"]
+__all__ = ["conversations", "demo", "health", "runs", "sessions"]
 
