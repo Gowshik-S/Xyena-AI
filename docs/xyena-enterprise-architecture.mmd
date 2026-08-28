@@ -1,0 +1,177 @@
+flowchart TB
+    %% ============================================================
+    %% XYENA ENTERPRISE AI — PRESENTATION ARCHITECTURE
+    %% ============================================================
+
+    subgraph EXPERIENCE["1 · Experience, Identity and Tenant Boundary"]
+        direction LR
+        MSME["MSME Users"]
+        REVIEWERS["Risk and Operations Reviewers"]
+        FUNDERS["Bank and Funder Users"]
+        IAM["API Gateway + Enterprise Identity<br/>authentication · MFA · RBAC/ABAC · workload identity"]
+        SCOPE["Tenant and Consent Resolver<br/>tenant_id · msme_id · user_id · case_id · session_id"]
+
+        MSME --> IAM
+        REVIEWERS --> IAM
+        FUNDERS --> IAM
+        IAM --> SCOPE
+    end
+
+    subgraph CONTEXT["2 · Tenant-Isolated Context and Memory Plane"]
+        direction LR
+        MEMORYPOLICY["Memory Policy Engine<br/>scope · provenance · PII · consent · conflicts · retention"]
+        MEMORY[("Scoped Memory Services<br/>session · user · MSME · case/evidence · security posture")]
+        RETRIEVAL["Policy-Filtered Retrieval<br/>deterministic + semantic + graph · freshness limits"]
+        ASSEMBLER["Context Assembler<br/>minimum sufficient context · sensitivity and token budget"]
+        ENVELOPE["Immutable ContextEnvelope<br/>trusted scope + versioned context and provenance references"]
+
+        MEMORYPOLICY -->|"validated durable writes"| MEMORY
+        MEMORY --> RETRIEVAL
+        RETRIEVAL --> ASSEMBLER
+        ASSEMBLER --> ENVELOPE
+    end
+
+    SCOPE -->|"trusted scope and consent"| ASSEMBLER
+
+    subgraph EVIDENCETRUST["3 · Untrusted Input and Evidence Trust Plane"]
+        direction LR
+        SANDBOX["Content Sandbox<br/>documents · images · OCR · active-content isolation"]
+        NORMALIZER["Schema Projection + Normalizer<br/>types · enums · patterns · length · encoding<br/>instruction-like content classification"]
+        RECEIPTS["Signed Evidence Receipt Service<br/>connector identity · scope · raw/normalized hashes<br/>freshness · security flags · signature"]
+        REQUIREMENTS["Evidence Policy Engine<br/>mandatory receipts · freshness · independence<br/>deterministic completeness + consistency"]
+        QUARANTINE[("Restricted Raw Evidence<br/>quarantined artifacts · forensic access only")]
+
+        SANDBOX --> NORMALIZER
+        NORMALIZER --> RECEIPTS
+        NORMALIZER --> QUARANTINE
+        RECEIPTS --> REQUIREMENTS
+    end
+
+    IAM -.->|"uploads remain untrusted data"| SANDBOX
+    RECEIPTS -->|"normalized facts + receipt IDs"| ASSEMBLER
+
+    subgraph INTELLIGENCE["4 · Multi-Agent Intelligence Plane"]
+        direction LR
+        SUPERVISOR["Workflow Supervisor<br/>routes tasks · provides context · validates contracts"]
+        AGENTPOOL["Specialized Agent Pool<br/>Intake · Business · Invoice · Delivery<br/>Payment · Fraud/Risk · Credit"]
+        ORCHESTRATOR["Decision Orchestrator<br/>combines structured findings with signed receipt IDs<br/>preserves missing and contradictory evidence"]
+        EXPOSURE["Exposure and Eligibility Engine<br/>company capacity · 70% receivable cap · cross-funder exposure"]
+        PROPOSAL["ProposedAction<br/>proposal only — never direct execution"]
+
+        SUPERVISOR --> AGENTPOOL
+        AGENTPOOL --> ORCHESTRATOR
+        ORCHESTRATOR --> EXPOSURE
+        EXPOSURE --> PROPOSAL
+    end
+
+    ENVELOPE -->|"scoped agent context"| SUPERVISOR
+
+    subgraph GOVERNANCE["5 · Guardian Governance and Graduated Autonomy"]
+        direction LR
+        CALLMON["Continuous Call Monitor<br/>findings · tool requests/results · proposals · outcomes<br/>behaviour baseline + action graph"]
+        GUARDIAN["Guardian Engine<br/>identity · mandate · intent · signed provenance<br/>completeness · consistency · counterparty · tool trust<br/>exposure · behaviour · policy"]
+        VERDICT{"Guardian Verdict"}
+        AUTHORIZATION["Hash-Bound Authorization<br/>signed · short-lived · single-use · exact action"]
+        EXECUTION["Execution Gateway<br/>recheck mandate and action hash<br/>idempotency + atomic exposure reservation"]
+        VERIFY["VERIFY<br/>request trusted evidence"]
+        BLOCK["BLOCK<br/>stop and record"]
+        ESCALATE["ESCALATE<br/>human or security review"]
+
+        CALLMON --> GUARDIAN
+        REQUIREMENTS --> GUARDIAN
+        GUARDIAN --> VERDICT
+        VERDICT -->|"ALLOW or CONSTRAIN"| AUTHORIZATION
+        AUTHORIZATION --> EXECUTION
+        VERDICT -->|"VERIFY"| VERIFY
+        VERDICT -->|"BLOCK"| BLOCK
+        VERDICT -->|"ESCALATE"| ESCALATE
+    end
+
+    PROPOSAL -->|"must be governed"| CALLMON
+
+    subgraph TOOLFABRIC["6 · MCP Tool Fabric"]
+        direction LR
+        TOOLPOLICY["Tool Policy and Capability Filter<br/>agent allowlist · consent · purpose · sensitivity · limits"]
+        MCPGATEWAY["MCP Gateway + Registry<br/>tool discovery · input schemas · scoped identity<br/>trusted connector metadata · timeouts · idempotency · audit"]
+        SUPPLYMCP["Supply-Finance MCP<br/>Business/GST · Invoice/ERP · Risk/Graph · Funders"]
+        DOMAINMCP["Financial Domain MCP Servers<br/>Bank MCP: AA evidence + protected banking<br/>Wallet MCP · Portfolio MCP · DeFi MCP · Extension MCP"]
+
+        TOOLPOLICY --> MCPGATEWAY
+        MCPGATEWAY --> SUPPLYMCP
+        MCPGATEWAY --> DOMAINMCP
+    end
+
+    AGENTPOOL -.->|"read-only and sensitive tool calls"| TOOLPOLICY
+    SCOPE -.->|"scope enforced on every tool call"| TOOLPOLICY
+    EXECUTION -->|"exact authorized financial tool call"| TOOLPOLICY
+    AGENTPOOL -.->|"finding telemetry"| CALLMON
+    TOOLPOLICY -.->|"request telemetry"| CALLMON
+    MCPGATEWAY -.->|"result + connector telemetry"| CALLMON
+
+    subgraph ENTERPRISE["7 · Enterprise Integrations and Continuous Security Loop"]
+        direction LR
+        EVIDENCE["Official, AA and Enterprise Evidence<br/>GST · e-Invoice · FIPs · registries · ERP · delivery<br/>external payloads are still untrusted data"]
+        DIGITAL["Digital-Asset and Market Evidence<br/>chains · address intelligence · brokers · market data<br/>protocol registry · contract risk · simulation"]
+        FINANCE["Financial Execution Infrastructure<br/>banks · payment rails · brokers · custody signers<br/>wallets · smart contracts · funders · ledger"]
+        MONITOR["Post-Execution Monitor<br/>execution-receipt reconciliation · exposure updates<br/>behaviour drift · cascade detection"]
+        FEEDBACK["Adaptive Security Feedback<br/>updated risk posture · limits · action chain · validated memory"]
+
+        FINANCE -->|"execution receipt"| MONITOR
+        MONITOR --> FEEDBACK
+    end
+
+    SUPPLYMCP --> EVIDENCE
+    DOMAINMCP --> EVIDENCE
+    DOMAINMCP --> DIGITAL
+    EVIDENCE -->|"raw JSON/data over authenticated connector"| MCPGATEWAY
+    DIGITAL -->|"raw chain/market/protocol data"| MCPGATEWAY
+    MCPGATEWAY -->|"raw payload + non-user-controlled metadata"| NORMALIZER
+    DOMAINMCP -->|"Guardian-authorized exact action"| FINANCE
+    MONITOR -->|"outcome telemetry"| CALLMON
+
+    subgraph DATA["8 · Enterprise Data and Audit Plane"]
+        direction LR
+        OLTP[("Transactional Store<br/>users · MSMEs · cases · mandates · exposure")]
+        VECTOR[("Scoped Memory Index<br/>metadata-filtered pgvector")]
+        OBJECTS[("Evidence Object Store<br/>restricted raw artifacts · immutable hashes")]
+        RECEIPTSTORE[("Evidence Receipt Store<br/>normalized claims · scope · freshness · signatures")]
+        GRAPH[("Provenance and Action Graph<br/>sources · tools · agents · counterparties · action chains")]
+        AUDIT[("Append-Only Decision Audit<br/>tool calls · decisions · overrides · receipts")]
+        EVENTS[("Event and Outbox Stream")]
+    end
+
+    FEEDBACK ~~~ OLTP
+    QUARANTINE --> OBJECTS
+    RECEIPTS --> RECEIPTSTORE
+    CALLMON --> GRAPH
+
+    %% ============================================================
+    %% VISUAL SYSTEM
+    %% ============================================================
+    classDef actor fill:#ffffff,stroke:#8296b2,color:#14243e,stroke-width:1.5px;
+    classDef boundary fill:#13233f,stroke:#13233f,color:#ffffff,stroke-width:2px;
+    classDef context fill:#e7f8f6,stroke:#0c9696,color:#123c42,stroke-width:1.5px;
+    classDef memory fill:#f3effb,stroke:#8264b5,color:#2f2051,stroke-width:1.5px;
+    classDef agent fill:#f7f9fc,stroke:#6f84a1,color:#14243e,stroke-width:1.5px;
+    classDef decision fill:#eaf1ff,stroke:#2e6fd8,color:#173a72,stroke-width:1.6px;
+    classDef guardian fill:#533494,stroke:#3f267f,color:#ffffff,stroke-width:2.5px;
+    classDef mcp fill:#e9f5f5,stroke:#0c8791,color:#123c42,stroke-width:1.5px;
+    classDef protected fill:#13233f,stroke:#13233f,color:#ffffff,stroke-width:2px;
+    classDef warning fill:#fff3e2,stroke:#d9901e,color:#6f4500,stroke-width:1.5px;
+    classDef danger fill:#fcebed,stroke:#d64958,color:#7e1d29,stroke-width:1.5px;
+    classDef store fill:#ffffff,stroke:#8296b2,color:#14243e,stroke-width:1.4px;
+
+    class MSME,REVIEWERS,FUNDERS actor;
+    class IAM,SCOPE boundary;
+    class MEMORYPOLICY,RETRIEVAL,ASSEMBLER,ENVELOPE,NORMALIZER,RECEIPTS,REQUIREMENTS context;
+    class MEMORY memory;
+    class SUPERVISOR,AGENTPOOL agent;
+    class ORCHESTRATOR,EXPOSURE,PROPOSAL decision;
+    class GUARDIAN,CALLMON guardian;
+    class VERDICT,VERIFY,ESCALATE warning;
+    class BLOCK danger;
+    class AUTHORIZATION,EXECUTION,FINANCE protected;
+    class TOOLPOLICY,MCPGATEWAY,SUPPLYMCP,DOMAINMCP mcp;
+    class SANDBOX,QUARANTINE warning;
+    class EVIDENCE,DIGITAL,MONITOR,FEEDBACK,OLTP,VECTOR,OBJECTS,RECEIPTSTORE,GRAPH,AUDIT,EVENTS store;
+    linkStyle default stroke:#506581,stroke-width:1.8px;
