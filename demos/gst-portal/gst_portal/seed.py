@@ -76,6 +76,14 @@ async def seed_demo_data() -> None:
     password_hash = hash_password(get_settings().demo_password.get_secret_value())
     async with session() as db:
         if await db.get(Enterprise, ENTERPRISE_FIXTURES[0]["enterprise_id"]) is not None:
+            seeded_users = [
+                "user-reviewer",
+                *[f"user-{item['slug']}" for item in ENTERPRISE_FIXTURES],
+            ]
+            for stable_name in seeded_users:
+                user = await db.get(User, stable_id(stable_name))
+                if user is not None:
+                    user.password_hash = password_hash
             return
 
         reviewer = User(

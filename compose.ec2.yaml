@@ -242,6 +242,7 @@ services:
     restart: unless-stopped
     environment:
       GST_PORTAL_DATABASE_URL: postgresql+asyncpg://gst_app:${GST_DB_PASSWORD}@postgres:5432/gst_demo
+      GST_PORTAL_DEMO_PASSWORD: ${DEMO_UI_TOKEN:-xyena-demo}
     ports: ["127.0.0.1:8091:8091"]
     depends_on:
       db-provision:

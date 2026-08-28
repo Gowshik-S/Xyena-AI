@@ -113,6 +113,7 @@ async function initLogin() {
   const options = document.querySelectorAll(".account-option");
   options.forEach(option => option.addEventListener("click", () => {
     byId("email").value = option.dataset.email;
+    byId("password").value = "xyena-demo";
     byId("password").focus();
   }));
   byId("loginForm").addEventListener("submit", async (event) => {
