@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     openai_api_key: SecretStr | None = None
     openai_model: str = "gpt-5.6-terra"
+    openai_embedding_model: str = "text-embedding-3-small"
 
     oidc_issuer: str = "https://identity.example.com"
     oidc_audience: str = "xyena-api"
@@ -53,4 +54,3 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
-

@@ -56,6 +56,7 @@ class AgentRun(Base, UUIDPrimaryKeyMixin, TenantScopedMixin, TimestampMixin, Ver
     error_code: Mapped[str | None] = mapped_column(String(100))
     error_detail: Mapped[str | None] = mapped_column(Text)
     usage: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False, default=dict)
+    runtime_scope: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False, default=dict)
     lease_owner: Mapped[str | None] = mapped_column(String(200))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -96,4 +97,3 @@ class AgentRunEvent(Base, UUIDPrimaryKeyMixin, TenantScopedMixin):
     status: Mapped[str] = mapped_column(String(40), nullable=False)
     data: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False, default=dict)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-

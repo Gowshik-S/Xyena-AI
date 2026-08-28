@@ -219,6 +219,12 @@ class ConversationService:
             status="QUEUED",
             input_message_id=message.id,
             usage={},
+            runtime_scope={
+                "roles": list(principal.roles),
+                "scopes": list(principal.scopes),
+                "consent_ids": [],
+                "policy_bundle_version": "platform-default-v1",
+            },
         )
         event = AgentRunEvent(
             id=uuid4(),

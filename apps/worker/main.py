@@ -10,6 +10,7 @@ from packages.config import get_settings
 from packages.observability import configure_logging, get_logger
 from packages.persistence import get_database
 from packages.persistence.models.ops import Job
+from apps.worker.handlers import handle_agent_run, handle_mcp_resume, handle_memory_embed
 
 logger = get_logger(__name__)
 
@@ -88,9 +89,11 @@ class Worker:
 
 async def main() -> None:
     worker = Worker()
+    worker.register("agent.run", handle_agent_run)
+    worker.register("mcp.resume", handle_mcp_resume)
+    worker.register("memory.embed", handle_memory_embed)
     await worker.run_forever()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-
