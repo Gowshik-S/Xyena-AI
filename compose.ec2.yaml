@@ -67,7 +67,31 @@ services:
       test: ["CMD-SHELL", "pg_isready -U xyena -d xyena"]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 60
+      start_period: 60s
+    networks: [platform]
+
+  db-provision:
+    image: pgvector/pgvector:pg16
+    restart: "no"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: xyena
+      POSTGRES_USER: xyena
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      BANK_DB_PASSWORD: ${BANK_DB_PASSWORD:?set BANK_DB_PASSWORD}
+      GST_DB_PASSWORD: ${GST_DB_PASSWORD:?set GST_DB_PASSWORD}
+      ERP_DB_PASSWORD: ${ERP_DB_PASSWORD:?set ERP_DB_PASSWORD}
+      REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?set REGISTRY_DB_PASSWORD}
+      FUNDER_DB_PASSWORD: ${FUNDER_DB_PASSWORD:?set FUNDER_DB_PASSWORD}
+      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?set DELIVERY_DB_PASSWORD}
+      LEDGER_DB_PASSWORD: ${LEDGER_DB_PASSWORD:?set LEDGER_DB_PASSWORD}
+    volumes:
+      - ./deploy/ec2/postgres/init-multi-db.sh:/scripts/init-multi-db.sh:ro
+    command: ["/scripts/init-multi-db.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks: [platform]
 
   redis:
@@ -121,8 +145,8 @@ services:
     restart: "no"
     command: ["alembic", "upgrade", "head"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
 
   guardian:
     <<: *core
@@ -201,8 +225,8 @@ services:
       BANK_DEMO_DATABASE_URL: postgresql+asyncpg://bank_app:${BANK_DB_PASSWORD}@postgres:5432/bank_demo
     ports: ["127.0.0.1:8090:8090"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/ready')"]
       interval: 10s
@@ -216,8 +240,8 @@ services:
       GST_PORTAL_DATABASE_URL: postgresql+asyncpg://gst_app:${GST_DB_PASSWORD}@postgres:5432/gst_demo
     ports: ["127.0.0.1:8091:8091"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health/ready')"]
       interval: 10s
@@ -231,8 +255,8 @@ services:
       ERP_DEMO_DATABASE_URL: postgresql+asyncpg://erp_app:${ERP_DB_PASSWORD}@postgres:5432/erp_demo
     ports: ["127.0.0.1:8092:8092"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
       gst-portal:
         condition: service_healthy
     healthcheck:
@@ -248,8 +272,8 @@ services:
       REGISTRY_DEMO_DATABASE_URL: postgresql+asyncpg://registry_app:${REGISTRY_DB_PASSWORD}@postgres:5432/registry_demo
     ports: ["127.0.0.1:8093:8093"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health/ready')"]
       interval: 10s
@@ -263,8 +287,8 @@ services:
       FUNDER_DEMO_DATABASE_URL: postgresql+asyncpg://funder_app:${FUNDER_DB_PASSWORD}@postgres:5432/funder_demo
     ports: ["127.0.0.1:8094:8094"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8094/health/ready')"]
       interval: 10s
@@ -278,8 +302,8 @@ services:
       DELIVERY_DEMO_DATABASE_URL: postgresql+asyncpg://delivery_app:${DELIVERY_DB_PASSWORD}@postgres:5432/delivery_demo
     ports: ["127.0.0.1:8095:8095"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health/ready')"]
       interval: 10s
@@ -293,8 +317,8 @@ services:
       LEDGER_DEMO_DATABASE_URL: postgresql+asyncpg://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ledger_demo
     ports: ["127.0.0.1:8096:8096"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-provision:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8096/health/ready')"]
       interval: 10s

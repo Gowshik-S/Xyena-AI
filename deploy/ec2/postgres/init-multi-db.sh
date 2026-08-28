@@ -9,8 +9,9 @@ create_application_database() {
     if ! psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --tuples-only \
         --command "SELECT 1 FROM pg_roles WHERE rolname = '$role_name'" | grep -q 1; then
         psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
-            --set=role_password="$role_password" \
-            --command "CREATE ROLE $role_name LOGIN PASSWORD :'role_password'"
+            --set=role_password="$role_password" <<-EOSQL
+			CREATE ROLE $role_name LOGIN PASSWORD :'role_password';
+		EOSQL
     fi
 
     if ! psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --tuples-only \
@@ -18,6 +19,10 @@ create_application_database() {
         createdb --username "$POSTGRES_USER" --owner "$role_name" "$database_name"
     fi
 }
+
+if [ -n "${POSTGRES_HOST:-}" ]; then
+    export PGHOST="$POSTGRES_HOST"
+fi
 
 psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
     --command "CREATE EXTENSION IF NOT EXISTS vector"
