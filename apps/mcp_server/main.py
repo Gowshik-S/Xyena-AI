@@ -12,7 +12,13 @@ from apps.api.errors import register_error_handlers
 from apps.api.middleware import CorrelationMiddleware
 from apps.mcp_server.server import mcp, mcp_app
 from packages.config import get_settings
-from packages.contracts.tools import MCPServerCreate, MCPServerView, SafeToolResult, ToolCallSubmit
+from packages.contracts.tools import (
+    MCPServerCreate,
+    MCPServerView,
+    SafeToolResult,
+    ToolCallResume,
+    ToolCallSubmit,
+)
 from packages.identity.service_auth import require_service_token
 from packages.observability import configure_logging
 from packages.persistence import get_database
@@ -149,6 +155,21 @@ def create_app() -> FastAPI:
         ) as db:
             try:
                 return await tool_broker.execute(db, body)
+            except ToolBrokerError as exc:
+                raise HTTPException(status_code=422, detail=f"{exc.code}: {exc}") from exc
+
+    @app.post(
+        "/internal/mcp/calls/resume",
+        response_model=SafeToolResult,
+        dependencies=[Depends(require_service_token)],
+        tags=["broker"],
+    )
+    async def resume_tool(body: ToolCallResume) -> SafeToolResult:
+        async with get_database().session(
+            tenant_id=body.tenant_id, service_role="mcp"
+        ) as db:
+            try:
+                return await tool_broker.resume(db, body)
             except ToolBrokerError as exc:
                 raise HTTPException(status_code=422, detail=f"{exc.code}: {exc}") from exc
 

@@ -119,6 +119,12 @@ class ToolCallSubmit(ContractModel):
     intent: ToolIntent
 
 
+class ToolCallResume(ContractModel):
+    tenant_id: UUID
+    call_id: UUID
+    correlation_id: UUID
+
+
 class SafeToolResult(ContractModel):
     call_id: UUID
     status: Literal["SUCCEEDED", "FAILED", "UNKNOWN", "BLOCKED"]
@@ -142,4 +148,3 @@ class ToolCallView(ContractModel):
     idempotency_key: str | None
     created_at: datetime
     updated_at: datetime
-

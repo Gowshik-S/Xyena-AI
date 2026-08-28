@@ -2,6 +2,13 @@ from .agent import AgentDefinition, AgentRun, AgentRunEvent, AgentRunStep, Agent
 from .audit import AuditEvent, OutboxEvent
 from .conversation import Conversation, ConversationMember, Message, ProviderState, Session
 from .iam import Consent, Membership, Organization, ServiceIdentity, Tenant, User
+from .guardian import (
+    GuardianApprovalAction,
+    GuardianApprovalRequest,
+    GuardianAuthorization,
+    GuardianDecision,
+    GuardianPolicyBundle,
+)
 from .ops import IdempotencyRecord, Job
 from .mcp import (
     AgentToolGrant,
@@ -37,6 +44,11 @@ __all__ = [
     "Session",
     "Tenant",
     "User",
+    "GuardianApprovalAction",
+    "GuardianApprovalRequest",
+    "GuardianAuthorization",
+    "GuardianDecision",
+    "GuardianPolicyBundle",
     "AgentToolGrant",
     "MCPCallAttempt",
     "MCPHealthEvent",

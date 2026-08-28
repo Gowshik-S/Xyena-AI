@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.errors import register_error_handlers
 from apps.api.middleware import CorrelationMiddleware
-from apps.api.routes import conversations, health, runs, sessions
+from apps.api.routes import approvals, conversations, health, runs, sessions
 from packages.config import get_settings
 from packages.observability import configure_logging
 from packages.persistence import get_database
@@ -49,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(sessions.router)
     app.include_router(conversations.router)
     app.include_router(runs.router)
+    app.include_router(approvals.router)
     register_error_handlers(app)
     return app
 
@@ -61,4 +62,3 @@ if __name__ == "__main__":
 
     settings = get_settings()
     uvicorn.run("apps.api.main:app", host=settings.api_host, port=settings.api_port, reload=False)
-

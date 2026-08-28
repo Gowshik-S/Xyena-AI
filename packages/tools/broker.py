@@ -12,10 +12,18 @@ from packages.contracts.tools import (
     CanonicalToolRequest,
     SafeToolResult,
     ToolCallStatus,
+    ToolCallResume,
     ToolCallSubmit,
     ToolRiskClass,
 )
+from packages.contracts.guardian import (
+    GuardianEvaluationRequest,
+    GuardianOutcome,
+    ToolPolicySnapshot,
+)
+from packages.guardian import GuardianClient, GuardianClientError
 from packages.mcp_gateway.client import RemoteMCPClient, RemoteServerConfig
+from packages.contracts.context import RuntimeContext
 from packages.persistence.models.mcp import (
     MCPCallAttempt,
     MCPServer,
@@ -39,8 +47,13 @@ class ToolBrokerError(RuntimeError):
 class ToolBroker:
     """The only allowed execution path for first-party and remote MCP tools."""
 
-    def __init__(self, remote_client: RemoteMCPClient | None = None) -> None:
+    def __init__(
+        self,
+        remote_client: RemoteMCPClient | None = None,
+        guardian_client: GuardianClient | None = None,
+    ) -> None:
         self.remote_client = remote_client or RemoteMCPClient()
+        self.guardian_client = guardian_client or GuardianClient()
 
     async def execute(self, db: AsyncSession, request: ToolCallSubmit) -> SafeToolResult:
         resolved = await self._resolve(db, request)
@@ -100,37 +113,154 @@ class ToolBroker:
         db.add(call)
         await db.flush()
 
-        await append_audit_event(
-            db,
-            tenant_id=request.context.tenant_id,
-            actor_type="AGENT",
-            actor_id=request.agent_name,
-            event_type="mcp.tool_call.validated",
-            subject_type="MCP_TOOL_CALL",
-            subject_id=call.id,
-            correlation_id=request.context.correlation_id,
-            payload={
-                "canonical_name": tool.canonical_name,
-                "request_hash": request_hash,
-                "risk_class": version.risk_class,
-            },
-        )
-
-        # Until Guardian is wired in checkpoint 3, only approved, side-effect-free reads run.
         if version.risk_class != ToolRiskClass.READ.value or policy.approval_mode != "NEVER":
-            call.status = ToolCallStatus.BLOCKED.value
-            result = await self._store_result(
-                db,
-                call,
-                status="BLOCKED",
-                projection=None,
-                policy=policy,
-                error_code="GUARDIAN_REQUIRED",
-                error_message="This tool requires a Guardian decision before execution.",
-                flags=["protected_tool"],
+            guardian_request = GuardianEvaluationRequest(
+                request=canonical_request,
+                policy=ToolPolicySnapshot(
+                    risk_class=ToolRiskClass(version.risk_class),
+                    required_roles=tuple(policy.required_roles),
+                    required_purposes=tuple(policy.required_purposes),
+                    required_consents=tuple(policy.required_consents),
+                    allowed_agents=tuple(policy.allowed_agents),
+                    approval_mode=policy.approval_mode,
+                    side_effects=version.side_effects,
+                    idempotent=version.idempotent,
+                ),
             )
-            return self._safe_result(result, call.id)
+            try:
+                decision = await self.guardian_client.evaluate(guardian_request)
+            except GuardianClientError:
+                call.status = ToolCallStatus.BLOCKED.value
+                result = await self._store_result(
+                    db,
+                    call,
+                    status="BLOCKED",
+                    projection=None,
+                    policy=policy,
+                    error_code="GUARDIAN_UNAVAILABLE",
+                    error_message="Guardian could not authorize this protected tool.",
+                    flags=["fail_closed", "protected_tool"],
+                )
+                return self._safe_result(result, call.id)
+            call.guardian_decision_id = decision.decision_id
+            if decision.outcome in (GuardianOutcome.ESCALATE, GuardianOutcome.VERIFY):
+                call.status = ToolCallStatus.WAITING_APPROVAL.value
+                return SafeToolResult(
+                    call_id=call.id,
+                    status="BLOCKED",
+                    provenance_hash=canonical_hash(decision.model_dump(mode="json")),
+                    security_flags=["approval_required", *decision.reason_codes],
+                    error_code="APPROVAL_REQUIRED",
+                    error_message="A Guardian approval is required before execution.",
+                )
+            if decision.outcome == GuardianOutcome.BLOCK:
+                call.status = ToolCallStatus.BLOCKED.value
+                result = await self._store_result(
+                    db,
+                    call,
+                    status="BLOCKED",
+                    projection=None,
+                    policy=policy,
+                    error_code="GUARDIAN_BLOCKED",
+                    error_message="Guardian policy blocked this tool call.",
+                    flags=decision.reason_codes,
+                )
+                return self._safe_result(result, call.id)
+            if not decision.authorization_token or not decision.authorization_id:
+                raise ToolBrokerError(
+                    "AUTHORIZATION_MISSING", "Guardian allowed a protected call without authorization."
+                )
+            try:
+                consumed = await self.guardian_client.consume(
+                    token=decision.authorization_token,
+                    tenant_id=request.context.tenant_id,
+                    call_id=call.id,
+                    request_hash=request_hash,
+                    correlation_id=request.context.correlation_id,
+                )
+            except GuardianClientError as exc:
+                raise ToolBrokerError("AUTHORIZATION_REJECTED", str(exc)) from exc
+            call.authorization_id = consumed.authorization_id
 
+        return await self._call(db, call, canonical_request, server, tool, policy)
+
+    async def resume(self, db: AsyncSession, request: ToolCallResume) -> SafeToolResult:
+        call = await db.scalar(
+            select(MCPToolCall)
+            .where(
+                MCPToolCall.id == request.call_id,
+                MCPToolCall.tenant_id == request.tenant_id,
+            )
+            .with_for_update()
+        )
+        if call is None:
+            raise ToolBrokerError("CALL_NOT_FOUND", "The tool call was not found.")
+        if call.status != ToolCallStatus.WAITING_APPROVAL.value:
+            raise ToolBrokerError("CALL_NOT_RESUMABLE", "The tool call is not awaiting approval.")
+        row = (
+            await db.execute(
+                select(MCPTool, MCPToolVersion, MCPToolPolicy, MCPServer)
+                .join(MCPToolVersion, MCPToolVersion.tool_id == MCPTool.id)
+                .join(MCPToolPolicy, MCPToolPolicy.tool_version_id == MCPToolVersion.id)
+                .join(MCPServer, MCPServer.id == MCPTool.server_id)
+                .where(
+                    MCPToolVersion.id == call.tool_version_id,
+                    or_(
+                        MCPToolPolicy.tenant_id == call.tenant_id,
+                        MCPToolPolicy.tenant_id.is_(None),
+                    ),
+                )
+                .order_by(MCPToolPolicy.tenant_id.desc().nulls_last())
+                .limit(1)
+            )
+        ).first()
+        if row is None:
+            raise ToolBrokerError("TOOL_NOT_FOUND", "The approved tool version is unavailable.")
+        tool, version, policy, server = row
+        try:
+            decision = await self.guardian_client.authorize_approved(
+                tenant_id=call.tenant_id,
+                call_id=call.id,
+                request_hash=call.request_hash,
+                correlation_id=request.correlation_id,
+            )
+            if not decision.authorization_token or not decision.authorization_id:
+                raise GuardianClientError("Guardian did not return an authorization.")
+            consumed = await self.guardian_client.consume(
+                token=decision.authorization_token,
+                tenant_id=call.tenant_id,
+                call_id=call.id,
+                request_hash=call.request_hash,
+                correlation_id=request.correlation_id,
+            )
+        except GuardianClientError as exc:
+            raise ToolBrokerError("AUTHORIZATION_REJECTED", str(exc)) from exc
+        call.guardian_decision_id = decision.decision_id
+        call.authorization_id = consumed.authorization_id
+        call.correlation_id = request.correlation_id
+        canonical_request = CanonicalToolRequest(
+            call_id=call.id,
+            run_id=call.run_id,
+            agent_version_id=call.agent_version_id,
+            agent_name=call.agent_name,
+            scope=RuntimeContext(
+                tenant_id=call.tenant_id,
+                organization_id=call.organization_id,
+                user_id=call.user_id,
+                session_id=call.session_id,
+                run_id=call.run_id,
+                correlation_id=request.correlation_id,
+            ),
+            server_id=server.id,
+            tool_version_id=version.id,
+            canonical_name=tool.canonical_name,
+            original_name=tool.original_name,
+            normalized_arguments=call.normalized_arguments,
+            purpose=call.purpose,
+            resource_refs=call.resource_refs,
+            idempotency_key=call.idempotency_key,
+            request_hash=call.request_hash,
+        )
         return await self._call(db, call, canonical_request, server, tool, policy)
 
     async def _resolve(
@@ -289,6 +419,23 @@ class ToolBroker:
             event_type=f"mcp.tool_call.{call.status.lower()}",
             correlation_id=call.correlation_id,
             payload={"canonical_name": call.canonical_name, "status": call.status},
+        )
+        await append_audit_event(
+            db,
+            tenant_id=call.tenant_id,
+            actor_type="AGENT",
+            actor_id=call.agent_name,
+            event_type=f"mcp.tool_call.{call.status.lower()}",
+            subject_type="MCP_TOOL_CALL",
+            subject_id=call.id,
+            correlation_id=call.correlation_id,
+            payload={
+                "canonical_name": call.canonical_name,
+                "request_hash": call.request_hash,
+                "guardian_decision_id": str(call.guardian_decision_id)
+                if call.guardian_decision_id
+                else None,
+            },
         )
         return self._safe_result(result, call.id)
 
