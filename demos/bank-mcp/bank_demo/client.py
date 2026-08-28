@@ -50,7 +50,9 @@ async def check_connection() -> None:
     endpoint = os.getenv("BANK_DEMO_MCP_URL", "http://localhost:8090/mcp")
     token = required("BANK_DEMO_MCP_TOKEN")
     async with httpx2.AsyncClient(
-        headers={"Authorization": f"Bearer {token}"}, timeout=30
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=30,
+        follow_redirects=True,
     ) as http_client:
         transport = streamable_http_client(endpoint, http_client=http_client)
         async with Client(transport) as client:
