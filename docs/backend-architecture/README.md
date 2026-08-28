@@ -1,6 +1,6 @@
 # Xyena + Guardian Core Backend Architecture
 
-**Status:** implementation plan  
+**Status:** core backend implemented; deployment configuration required
 **Backend standard:** Python 3.12+, FastAPI, PostgreSQL, OpenAPI 3.1  
 **Scope:** Xyena core platform, multi-agent runtime, context and memory, MCP tool calling, Guardian governance, audit, and operations  
 **Explicitly excluded:** GST, banking, lending, payment, portfolio, DeFi, and other demo/domain applications; real financial execution; testing any demo application
@@ -38,15 +38,23 @@ Remote MCP servers do not have to run inside the Xyena deployment. Xyena's MCP G
 
 ## 2. Current repository state and implementation truth
 
-At the time this document was written:
+The core backend described here is implemented as Python source, Alembic migrations, service
+containers, and deployment manifests:
 
-- `apps/web` contains the React experience and architecture mockup;
-- `apps/api` and `apps/mcp-server` exist as empty planned directories;
-- `packages/agents`, `packages/context`, `packages/contracts`, `packages/memory`, and `packages/tools` exist as empty planned directories;
-- the existing Markdown files describe the agents and Guardian concept;
-- no Python backend, database schema, MCP server, Guardian service, agent runtime, or core backend test suite has been implemented yet.
+- `apps/api` provides the authenticated OpenAPI 3.1 public API;
+- `apps/worker` runs durable agent, approval-resume, memory-embedding, lease-recovery, and outbox work;
+- `apps/mcp_server` provides the hosted MCP endpoint, registry/discovery controls, and tool broker;
+- `apps/guardian` independently evaluates policy, records approvals, and issues/consumes signed grants;
+- migrations `0001` through `0004` create the IAM, conversation, agent, audit, operations, MCP,
+  Guardian, memory, pgvector, and data-vault persistence model with tenant RLS;
+- the Xyena supervisor and domain-neutral active specialists use manager-style OpenAI Agents SDK
+  orchestration and a PostgreSQL-backed SDK session;
+- Docker Compose and Kubernetes assets package the four services and migration job.
 
-**Implemented in this architecture task:** this reviewed backend plan only. No demo application was opened, executed, modified, or tested. Later phase completion reports must list actual migrations, services, endpoints, contracts, and tests that were completed; they must not report a phase as implemented merely because it appears in this document.
+The detailed inventory and configuration gates are in
+[Implementation status](./IMPLEMENTATION_STATUS.md). No GST, banking, lending, payment, dealer,
+portfolio, or other demo/domain backend was built or tested. The repository's pre-existing demo
+documents and web mockups are references only and are not wired into this core backend.
 
 ## 3. Architecture principles
 

@@ -1,0 +1,211 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyena-config
+data:
+  XYENA_ENV: "production"
+  XYENA_LOG_LEVEL: "INFO"
+  XYENA_OPENAI_MODEL: "gpt-5.6-terra"
+  XYENA_OPENAI_EMBEDDING_MODEL: "text-embedding-3-small"
+  XYENA_GUARDIAN_BASE_URL: "http://xyena-guardian:8082"
+  XYENA_MCP_BASE_URL: "http://xyena-mcp:8081"
+  XYENA_OBJECT_STORE_ENDPOINT: "https://replace-object-store"
+  XYENA_OBJECT_STORE_BUCKET: "xyena-artifacts"
+  XYENA_OBJECT_STORE_REGION: "us-east-1"
+  XYENA_OIDC_ISSUER: "https://replace-identity-provider"
+  XYENA_OIDC_AUDIENCE: "xyena-api"
+  XYENA_OTEL_SERVICE_NAMESPACE: "xyena"
+  XYENA_OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability:4317"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xyena-migrate
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xyena-migrate
+        app.kubernetes.io/part-of: xyena
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/your-org/xyena-backend:replace-with-digest
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: xyena-config
+            - secretRef:
+                name: xyena-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xyena-api
+spec:
+  selector:
+    app.kubernetes.io/name: xyena-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyena-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xyena-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xyena-api
+        app.kubernetes.io/part-of: xyena
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/your-org/xyena-backend:replace-with-digest
+          command: ["python", "-m", "apps.api.main"]
+          envFrom:
+            - configMapRef: {name: xyena-config}
+            - secretRef: {name: xyena-secrets}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe: {httpGet: {path: /health/ready, port: http}, initialDelaySeconds: 5}
+          livenessProbe: {httpGet: {path: /health/live, port: http}, initialDelaySeconds: 10}
+          resources:
+            requests: {cpu: 200m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xyena-mcp
+spec:
+  selector:
+    app.kubernetes.io/name: xyena-mcp
+  ports:
+    - {name: http, port: 8081, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyena-mcp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xyena-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xyena-mcp
+        app.kubernetes.io/part-of: xyena
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mcp
+          image: ghcr.io/your-org/xyena-backend:replace-with-digest
+          command: ["python", "-m", "apps.mcp_server.main"]
+          envFrom:
+            - configMapRef: {name: xyena-config}
+            - secretRef: {name: xyena-secrets}
+          ports:
+            - {name: http, containerPort: 8081}
+          readinessProbe: {httpGet: {path: /health/ready, port: http}, initialDelaySeconds: 5}
+          livenessProbe: {httpGet: {path: /health/live, port: http}, initialDelaySeconds: 10}
+          resources:
+            requests: {cpu: 200m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xyena-guardian
+spec:
+  selector:
+    app.kubernetes.io/name: xyena-guardian
+  ports:
+    - {name: http, port: 8082, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyena-guardian
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xyena-guardian
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xyena-guardian
+        app.kubernetes.io/part-of: xyena
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: guardian
+          image: ghcr.io/your-org/xyena-backend:replace-with-digest
+          command: ["python", "-m", "apps.guardian.main"]
+          envFrom:
+            - configMapRef: {name: xyena-config}
+            - secretRef: {name: xyena-secrets}
+          ports:
+            - {name: http, containerPort: 8082}
+          readinessProbe: {httpGet: {path: /health/ready, port: http}, initialDelaySeconds: 5}
+          livenessProbe: {httpGet: {path: /health/live, port: http}, initialDelaySeconds: 10}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyena-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xyena-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: xyena-worker
+        app.kubernetes.io/part-of: xyena
+    spec:
+      securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: worker
+          image: ghcr.io/your-org/xyena-backend:replace-with-digest
+          command: ["python", "-m", "apps.worker.main"]
+          envFrom:
+            - configMapRef: {name: xyena-config}
+            - secretRef: {name: xyena-secrets}
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {cpu: "2", memory: 2Gi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}

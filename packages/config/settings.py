@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AnyHttpUrl, Field, SecretStr
+from pydantic import AnyHttpUrl, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     object_store_bucket: str = "xyena-artifacts"
     object_store_access_key: SecretStr | None = None
     object_store_secret_key: SecretStr | None = None
+    object_store_region: str = "us-east-1"
+
+    otel_service_namespace: str = "xyena"
+    otel_exporter_otlp_endpoint: str | None = None
+    event_webhook_url: AnyHttpUrl | None = None
 
     api_host: str = "0.0.0.0"
     api_port: int = 8080
@@ -45,6 +50,22 @@ class Settings(BaseSettings):
     guardian_port: int = 8082
     worker_poll_seconds: float = 1.0
     run_event_poll_seconds: float = 0.5
+
+    @field_validator(
+        "openai_api_key",
+        "service_token",
+        "guardian_signing_key",
+        "guardian_verify_key",
+        "object_store_access_key",
+        "object_store_secret_key",
+        "event_webhook_url",
+        mode="before",
+    )
+    @classmethod
+    def blank_optional_values_are_none(cls, value: object) -> object | None:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        return value
 
     @property
     def jwks_url(self) -> str:

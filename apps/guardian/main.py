@@ -20,7 +20,7 @@ from packages.contracts.guardian import (
 )
 from packages.guardian.service import GuardianService, GuardianServiceError
 from packages.identity.service_auth import require_service_token
-from packages.observability import configure_logging
+from packages.observability import configure_logging, configure_telemetry
 from packages.persistence import get_database
 from packages.persistence.models.guardian import GuardianApprovalRequest
 
@@ -160,6 +160,7 @@ def create_app() -> FastAPI:
                 raise HTTPException(status_code=status_code, detail=f"{exc.code}: {exc}") from exc
 
     register_error_handlers(app)
+    configure_telemetry(app, "xyena-guardian")
     return app
 
 

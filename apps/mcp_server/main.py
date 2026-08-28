@@ -20,7 +20,7 @@ from packages.contracts.tools import (
     ToolCallSubmit,
 )
 from packages.identity.service_auth import require_service_token
-from packages.observability import configure_logging
+from packages.observability import configure_logging, configure_telemetry
 from packages.persistence import get_database
 from packages.persistence.models.mcp import MCPServer
 from packages.tools import ToolBrokerError, tool_broker, tool_registry
@@ -174,6 +174,7 @@ def create_app() -> FastAPI:
                 raise HTTPException(status_code=422, detail=f"{exc.code}: {exc}") from exc
 
     register_error_handlers(app)
+    configure_telemetry(app, "xyena-mcp")
     return app
 
 

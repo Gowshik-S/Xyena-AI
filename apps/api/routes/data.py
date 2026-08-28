@@ -4,11 +4,85 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.dependencies import get_correlation_id, get_principal, get_scoped_session
-from packages.contracts.data import DataGrantCreateRequest, DataObjectRegisterRequest, DataObjectView
+from packages.contracts.data import (
+    DataDownloadTicket,
+    DataGrantCreateRequest,
+    DataObjectRegisterRequest,
+    DataObjectView,
+    DataUploadRequest,
+    DataUploadTicket,
+)
 from packages.contracts.identity import AuthenticatedPrincipal
 from packages.data_vault.service import data_vault_service
+from packages.data_vault.object_store import ObjectStoreUnavailable
 
 router = APIRouter(prefix="/api/v1/data", tags=["Data vault"])
+
+
+@router.post("/uploads", operation_id="data_uploads_create", response_model=DataUploadTicket, status_code=201)
+async def initiate_upload(
+    body: DataUploadRequest,
+    principal: AuthenticatedPrincipal = Depends(get_principal),
+    correlation_id: UUID = Depends(get_correlation_id),
+    db: AsyncSession = Depends(get_scoped_session),
+) -> DataUploadTicket:
+    try:
+        value, ticket = await data_vault_service.initiate_upload(
+            db, principal, body, correlation_id
+        )
+        await db.flush()
+        return DataUploadTicket(
+            object=DataObjectView.model_validate(value),
+            upload_url=ticket.url,
+            required_headers=ticket.required_headers,
+            expires_in_seconds=ticket.expires_in_seconds,
+        )
+    except ObjectStoreUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post(
+    "/uploads/{object_id}/complete",
+    operation_id="data_uploads_complete",
+    response_model=DataObjectView,
+)
+async def complete_upload(
+    object_id: UUID,
+    principal: AuthenticatedPrincipal = Depends(get_principal),
+    correlation_id: UUID = Depends(get_correlation_id),
+    db: AsyncSession = Depends(get_scoped_session),
+) -> DataObjectView:
+    try:
+        value = await data_vault_service.complete_upload(
+            db, principal, object_id, correlation_id
+        )
+        return DataObjectView.model_validate(value)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ObjectStoreUnavailable, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post(
+    "/objects/{object_id}/download",
+    operation_id="data_objects_download",
+    response_model=DataDownloadTicket,
+)
+async def authorize_download(
+    object_id: UUID,
+    principal: AuthenticatedPrincipal = Depends(get_principal),
+    correlation_id: UUID = Depends(get_correlation_id),
+    db: AsyncSession = Depends(get_scoped_session),
+) -> DataDownloadTicket:
+    try:
+        url = await data_vault_service.download_ticket(
+            db, principal, object_id, correlation_id
+        )
+        return DataDownloadTicket(object_id=object_id, download_url=url, expires_in_seconds=300)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ObjectStoreUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @router.post("/objects", operation_id="data_objects_register", response_model=DataObjectView, status_code=201)

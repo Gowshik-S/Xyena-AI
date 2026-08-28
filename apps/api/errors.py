@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
@@ -25,8 +26,11 @@ def register_error_handlers(app: FastAPI) -> None:
             },
         )
 
+    @app.exception_handler(RequestValidationError)
     @app.exception_handler(ValidationError)
-    async def validation_problem(request: Request, exc: ValidationError) -> JSONResponse:
+    async def validation_problem(
+        request: Request, exc: RequestValidationError | ValidationError
+    ) -> JSONResponse:
         correlation_id = getattr(request.state, "correlation_id", uuid4())
         return JSONResponse(
             status_code=422,
@@ -84,4 +88,3 @@ def _title_for_status(status_code: int) -> str:
         422: "Validation error",
         429: "Too many requests",
     }.get(status_code, "Request failed")
-
