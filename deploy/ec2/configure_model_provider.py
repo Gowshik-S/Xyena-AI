@@ -53,24 +53,44 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("provider", choices=PROVIDERS)
     parser.add_argument("--model", help="provider model identifier")
+    parser.add_argument(
+        "--key-count",
+        type=int,
+        default=1,
+        help="number of keys to prompt for; multiple keys are supported by nvidia_nim",
+    )
     args = parser.parse_args()
 
     if not ENV_FILE.exists():
         raise SystemExit(f"{ENV_FILE} does not exist; run generate_env.py first")
 
+    if args.key_count < 1:
+        raise SystemExit("--key-count must be at least 1")
+    if args.provider != "nvidia_nim" and args.key_count != 1:
+        raise SystemExit("multiple keys are currently supported only for nvidia_nim")
+
     provider = PROVIDERS[args.provider]
-    api_key = getpass.getpass(f"Enter {args.provider} API key: ").strip()
-    if not api_key:
-        raise SystemExit("API key was empty; no changes made")
-    if "\n" in api_key or "\r" in api_key:
-        raise SystemExit("API key contains an invalid newline; no changes made")
+    api_keys: list[str] = []
+    for position in range(1, args.key_count + 1):
+        api_key = getpass.getpass(
+            f"Enter {args.provider} API key {position}/{args.key_count}: "
+        ).strip()
+        if not api_key:
+            raise SystemExit("API key was empty; no changes made")
+        if "\n" in api_key or "\r" in api_key or "," in api_key:
+            raise SystemExit("API key contains an invalid delimiter; no changes made")
+        api_keys.append(api_key)
+
+    api_keys = list(dict.fromkeys(api_keys))
 
     updates = {
         "XYENA_MODEL_PROVIDER": args.provider,
         "XYENA_OPENAI_MODEL": args.model or provider["default_model"],
-        provider["key_name"]: api_key,
+        provider["key_name"]: api_keys[0],
         **provider["extra"],
     }
+    if args.provider == "nvidia_nim":
+        updates["XYENA_NVIDIA_NIM_API_KEYS"] = ",".join(api_keys)
     updated = replace_values(ENV_FILE.read_text(encoding="utf-8"), updates)
     with tempfile.NamedTemporaryFile(
         mode="w",
@@ -88,7 +108,10 @@ def main() -> None:
     finally:
         temporary_path.unlink(missing_ok=True)
 
-    print(f"Configured {args.provider} with model {updates['XYENA_OPENAI_MODEL']}; key was not printed.")
+    print(
+        f"Configured {args.provider} with model {updates['XYENA_OPENAI_MODEL']} and "
+        f"{len(api_keys)} key(s); keys were not printed."
+    )
 
 
 if __name__ == "__main__":

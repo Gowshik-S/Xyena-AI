@@ -100,11 +100,11 @@ To configure NVIDIA NIM without exposing the key in shell history or opening the
 
 ```sh
 cd /home/ubuntu/Xyena-AI
-sudo python3 deploy/ec2/configure_model_provider.py nvidia_nim --model openai/gpt-oss-20b
+sudo python3 deploy/ec2/configure_model_provider.py nvidia_nim --model openai/gpt-oss-20b --key-count 4
 sudo docker compose --env-file .env -f compose.ec2.yaml up -d --force-recreate api worker
 ```
 
-The first command prompts for the key with input hidden, updates `.env` atomically, keeps mode `0600`, and does not print the key.
+The first command prompts for every key with input hidden, updates `.env` atomically, keeps mode `0600`, and does not print any key. The NIM HTTP transport starts successive requests on successive keys and immediately tries the remaining pool on authentication, entitlement, rate-limit, timeout, or server errors. Each request tries each configured key at most once.
 
 Command Code and the NVIDIA NIM chat configuration do not supply the embedding endpoint used by the current memory embedding worker. Without a separate OpenAI embedding key, durable text memories still work but new vector embeddings are skipped.
 

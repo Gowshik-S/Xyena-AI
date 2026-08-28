@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from itertools import count
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -27,6 +28,51 @@ class ApprovalPending(AgentRuntimeError):
     def __init__(self, call_id: UUID) -> None:
         super().__init__(f"Tool call {call_id} is waiting for Guardian approval.")
         self.call_id = call_id
+
+
+class NvidiaFailoverTransport(httpx.AsyncBaseTransport):
+    """Retry a NIM request once per configured key without exposing credentials."""
+
+    retry_statuses = frozenset({401, 403, 408, 409, 429, 500, 502, 503, 504})
+
+    def __init__(self, api_keys: tuple[str, ...]) -> None:
+        self.api_keys = api_keys
+        self._next_key = count()
+        self._transport = httpx.AsyncHTTPTransport(retries=0)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        body = await request.aread()
+        start = next(self._next_key) % len(self.api_keys)
+        last_error: httpx.TransportError | None = None
+
+        for offset in range(len(self.api_keys)):
+            headers = request.headers.copy()
+            headers["authorization"] = f"Bearer {self.api_keys[(start + offset) % len(self.api_keys)]}"
+            attempt = httpx.Request(
+                method=request.method,
+                url=request.url,
+                headers=headers,
+                content=body,
+                extensions=request.extensions,
+            )
+            try:
+                response = await self._transport.handle_async_request(attempt)
+            except httpx.TransportError as exc:
+                last_error = exc
+                if offset + 1 < len(self.api_keys):
+                    continue
+                raise
+            if response.status_code not in self.retry_statuses or offset + 1 == len(self.api_keys):
+                return response
+            await response.aread()
+            await response.aclose()
+
+        if last_error is not None:
+            raise last_error
+        raise AgentRuntimeError("NVIDIA NIM key pool is empty.")
+
+    async def aclose(self) -> None:
+        await self._transport.aclose()
 
 
 @dataclass(frozen=True)
@@ -105,10 +151,18 @@ class AgentRuntime:
             provider_name = "Command Code"
             headers = {"x-cmd-zdr": "1"} if self.settings.command_code_zdr else None
         else:
-            api_key = self.settings.nvidia_nim_api_key
-            base_url = self.settings.nvidia_nim_base_url
-            provider_name = "NVIDIA NIM"
-            headers = None
+            keys = self.settings.nvidia_nim_keys
+            if not keys:
+                raise AgentRuntimeError("NVIDIA NIM model provider is not configured.")
+            client = AsyncOpenAI(
+                api_key=keys[0],
+                base_url=str(self.settings.nvidia_nim_base_url).rstrip("/"),
+                http_client=httpx.AsyncClient(transport=NvidiaFailoverTransport(keys)),
+            )
+            return OpenAIChatCompletionsModel(
+                model=self.settings.openai_model,
+                openai_client=client,
+            )
         if api_key is None:
             raise AgentRuntimeError(f"{provider_name} model provider is not configured.")
         client = AsyncOpenAI(

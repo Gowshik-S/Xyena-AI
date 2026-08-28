@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     command_code_base_url: AnyHttpUrl = "https://api.commandcode.ai/provider/v1"
     command_code_zdr: bool = True
     nvidia_nim_api_key: SecretStr | None = None
+    nvidia_nim_api_keys: SecretStr | None = None
     nvidia_nim_base_url: AnyHttpUrl = "https://integrate.api.nvidia.com/v1"
 
     oidc_issuer: str = "https://identity.example.com"
@@ -62,6 +63,7 @@ class Settings(BaseSettings):
         "openai_api_key",
         "command_code_api_key",
         "nvidia_nim_api_key",
+        "nvidia_nim_api_keys",
         "service_token",
         "mcp_admin_token",
         "guardian_signing_key",
@@ -86,8 +88,16 @@ class Settings(BaseSettings):
         if self.model_provider == "command_code":
             return self.command_code_api_key
         if self.model_provider == "nvidia_nim":
-            return self.nvidia_nim_api_key
+            return self.nvidia_nim_api_keys or self.nvidia_nim_api_key
         return self.openai_api_key
+
+    @property
+    def nvidia_nim_keys(self) -> tuple[str, ...]:
+        configured = self.nvidia_nim_api_keys or self.nvidia_nim_api_key
+        if configured is None:
+            return ()
+        keys = (value.strip() for value in configured.get_secret_value().split(","))
+        return tuple(dict.fromkeys(value for value in keys if value))
 
 
 @lru_cache(maxsize=1)
