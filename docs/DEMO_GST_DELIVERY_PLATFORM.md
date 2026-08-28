@@ -381,7 +381,7 @@ Every page displays `DEMO DATA — NOT A REAL LOGISTICS SYSTEM`.
 | `seller_gstin` | string | Supplier identifier |
 | `buyer_gstin` | string | Buyer identifier |
 | `carrier_id` | string/null | Demo carrier |
-| `tracking_number` | string/null | Demo tracking ID |
+| `tracking_number` | string/null | server-generated synthetic ID matching `^XY[A-HJ-NP-Z2-9]{8}$` |
 | `dispatch_date` | timestamp/null | Dispatch time |
 | `expected_delivery_date` | date/null | Expected date |
 | `delivered_at` | timestamp/null | Actual completion time |
