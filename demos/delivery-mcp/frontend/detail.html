@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Delivery Detail - Xyena Delivery</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .thin-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #c6c6cd;
+            border-radius: 4px;
+        }
+
+        .access-panel-connected .main-content {
+            filter: none;
+            pointer-events: auto;
+        }
+        .main-content {
+            filter: blur(4px);
+            pointer-events: none;
+            transition: filter 0.3s ease;
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary-container": "#271901",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-bright": "#f7f9fb",
+                        "surface-tint": "#565e74",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#d0e1fb",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-primary-fixed": "#131b2e",
+                        "on-secondary-container": "#54647a",
+                        "on-tertiary-container": "#98805d",
+                        "primary": "#000000",
+                        "primary-container": "#131b2e",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-surface": "#191c1e",
+                        "outline": "#76777d",
+                        "background": "#f7f9fb",
+                        "on-tertiary-fixed": "#271901",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-primary-container": "#7c839b",
+                        "outline-variant": "#c6c6cd",
+                        "secondary-fixed": "#d3e4fe",
+                        "tertiary-fixed": "#fcdeb5",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#505f76",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "on-background": "#191c1e",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "primary-fixed": "#dae2fd",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary": "#000000",
+                        "inverse-surface": "#2d3133",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#45464d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "row-height-standard": "48px",
+                        "row-height-dense": "32px",
+                        "gutter-table": "12px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "mono-data": ["monospace"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "mono-data": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen overflow-hidden flex flex-col">
+
+<!-- Synthetic Notification Strip -->
+<div class="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-1.5 text-xs text-yellow-800 dark:text-yellow-400 flex items-center justify-center shrink-0">
+    <span class="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
+    Synthetic Demonstration Environment — all data is synthetic. No real logistics endpoints are connected.
+</div>
+
+<div class="flex flex-1 overflow-hidden relative" id="appRoot">
+    <!-- Access Control Panel Overlay -->
+    <div id="accessPanel" class="absolute inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest border border-outline-variant rounded p-6 max-w-md w-full shadow-lg">
+            <h2 class="font-headline-md text-headline-md text-primary mb-2">Connect to Demonstration Dataset</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant mb-4">
+                Enter the Delivery Demo UI Token to unlock specific shipment timelines, POD details and workflows.
+            </p>
+            <form id="accessForm" class="space-y-4">
+                <div>
+                    <label class="sr-only" for="token">UI Token</label>
+                    <input id="token" type="password" autocomplete="off" class="w-full px-3 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-md focus:border-primary focus:ring-1 focus:ring-primary/10 outline-none" placeholder="DELIVERY_DEMO_UI_TOKEN" required/>
+                </div>
+                <button type="submit" class="w-full py-2 bg-primary text-on-primary font-bold rounded hover:bg-primary-container transition-colors">
+                    Unlock Console
+                </button>
+            </form>
+            <p id="formMessage" class="text-xs text-error mt-2 font-mono-data hidden"></p>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="bg-surface-container-low text-primary flex flex-col pt-4 pb-4 px-2 w-[240px] border-r border-outline-variant shrink-0 z-40 hidden md:flex">
+        <div class="px-3 mb-6 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant shrink-0">
+                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdTvYQomTLvrifXW8avBsND7333ltl6df-5-iDpA6PRxDfsiVTwnu-6S5cvjNtUAO8H3_E_WvyATHA6T5w7gc4nOkiuXN9lDFtdrpL8r2nnwyPWjNidclJFV2TE8hhMCpSjlRpuxZoM12du8x8MF7zujY7fMx2qW3zOxXJir3N_LHeuUa0xQb3G98_nKTjt74GFI2-WK0319V60H9wUw_Lj8AN6pVqW-XuJYwELGpvP1rXwP_suFhOEQ"/>
+            </div>
+            <div>
+                <div class="font-headline-sm text-headline-sm text-on-surface truncate" title="Logistics Manager">Logistics Manager</div>
+                <div class="font-body-sm text-body-sm text-on-surface-variant truncate" title="System Administrator">System Administrator</div>
+            </div>
+        </div>
+        <div class="flex-1 space-y-1">
+            <a class="flex items-center px-3 py-2 rounded text-on-secondary-container hover:bg-surface-container-high transition-all group" href="/">
+                <span class="material-symbols-outlined mr-3 text-[20px]">dashboard</span>
+                <span class="font-label-md text-label-md">Dashboard</span>
+            </a>
+            <a class="flex items-center px-3 py-2 rounded bg-secondary-container/20 text-primary font-bold transition-all group" href="/deliveries">
+                <span class="material-symbols-outlined mr-3 text-[20px]">local_shipping</span>
+                <span class="font-label-md text-label-md">Deliveries</span>
+            </a>
+        </div>
+        <div class="mt-auto border-t border-outline-variant pt-2 space-y-1">
+            <button id="disconnectButton" class="w-full flex items-center px-3 py-2 rounded text-error hover:bg-error-container/10 transition-all font-bold">
+                <span class="material-symbols-outlined mr-3 text-[20px]">lock</span>
+                <span class="font-label-md text-label-md">Lock Console</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col ml-0 w-full h-full overflow-hidden main-content">
+        <!-- Top Navigation Header -->
+        <header class="bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center h-row-height-standard px-container-padding w-full shrink-0 z-10">
+            <div class="flex items-center space-x-4">
+                <div class="font-headline-lg text-headline-lg text-primary tracking-tighter">Xyena Delivery</div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center text-on-surface-variant">
+                    <div class="relative flex items-center justify-center w-3 h-3 mr-2">
+                        <div class="absolute w-2 h-2 rounded-full bg-error"></div>
+                        <div class="absolute w-2 h-2 rounded-full bg-error pulse-live"></div>
+                    </div>
+                    <span id="liveStatus" class="font-label-md text-label-md text-on-surface-variant">Live DB sync: Active</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto bg-surface p-container-padding thin-scrollbar">
+            <!-- Exception Warning Banner -->
+            <div id="warningBanner" class="mb-6 bg-error-container/20 border-l-[4px] border-error rounded-r p-4 flex items-start gap-3 hidden">
+                <span class="material-symbols-outlined text-error">warning</span>
+                <div>
+                    <h4 class="font-headline-sm text-headline-sm text-on-background" id="warningTitle">Warning: Shipment Exception</h4>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-1" id="warningText">An exception code is registered on this delivery.</p>
+                </div>
+            </div>
+
+            <!-- Breadcrumbs and Action Header -->
+            <div class="flex justify-between items-end mb-6 pb-4 border-b border-outline-variant">
+                <div>
+                    <nav class="flex text-on-surface-variant font-label-md text-label-md mb-2">
+                        <a class="hover:text-primary" href="/deliveries">Deliveries</a>
+                        <span class="mx-2">/</span>
+                        <span class="text-primary" id="delNumBreadcrumb">#XD-8812</span>
+                    </nav>
+                    <div class="flex items-center gap-4">
+                        <h1 class="font-headline-lg text-headline-lg text-primary" id="delNumHeader">Delivery #XD-8812</h1>
+                        <span id="statusBadge" class="px-2.5 py-0.5 rounded text-label-md font-label-md border">IN TRANSIT</span>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="toggleModal('correctionModal', true)" class="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded hover:bg-surface-container-low text-primary font-label-md text-label-md transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">edit_document</span>
+                        Add Correction
+                    </button>
+                    <button id="cancelButton" onclick="cancelShipmentPrompt()" class="px-4 py-2 bg-error text-on-error rounded hover:bg-error/90 font-label-md text-label-md transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">cancel</span>
+                        Cancel Shipment
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bento Detail Layout -->
+            <div class="grid grid-cols-12 gap-6">
+                <!-- Left Column -->
+                <div class="col-span-12 xl:col-span-8 space-y-6">
+                    <!-- Cards Info -->
+                    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+                            <div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Declared Value</div>
+                            <div id="declaredVal" class="font-mono-data text-primary text-lg font-bold">—</div>
+                            <div id="verifiedValContainer" class="font-body-sm text-body-sm text-on-surface-variant mt-1 flex items-center gap-1">
+                                Verified acceptance: <span id="verifiedVal" class="font-bold text-primary">—</span>
+                            </div>
+                        </div>
+                        <div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+                            <div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Ship From</div>
+                            <div id="shipFromTitle" class="font-body-md text-body-md text-primary font-semibold">—</div>
+                            <div id="shipFromAddress" class="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate">—</div>
+                        </div>
+                        <div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+                            <div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Ship To</div>
+                            <div id="shipToTitle" class="font-body-md text-body-md text-primary font-semibold">—</div>
+                            <div id="shipToAddress" class="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate">—</div>
+                        </div>
+                    </section>
+
+                    <!-- Items Table -->
+                    <section class="bg-surface-container-lowest border border-outline-variant rounded flex flex-col">
+                        <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+                            <h2 class="font-headline-sm text-headline-sm text-primary">Item Reconciliation</h2>
+                            <div id="lastUpdated" class="font-label-md text-label-md text-on-surface-variant">Last updated: —</div>
+                        </div>
+                        <div class="overflow-x-auto thin-scrollbar">
+                            <table class="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr class="bg-surface-container-low font-label-md text-label-md text-on-surface-variant uppercase">
+                                        <th class="p-3 border-b border-outline-variant font-semibold sticky left-0 bg-surface-container-low">SKU / Desc</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold text-right">Ordered</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold text-right">Dispatched</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold text-right">Delivered</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold text-right">Accepted</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold text-right">Rejected</th>
+                                        <th class="p-3 border-b border-outline-variant font-semibold">Status / Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody" class="font-mono-data text-mono-data text-on-background">
+                                    <tr>
+                                        <td colspan="7" class="text-center p-4">Loading items...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Operations Action Panel -->
+                    <section id="opsPanel" class="bg-surface-container-lowest border border-outline-variant rounded p-5 space-y-4">
+                        <h3 class="font-headline-sm text-headline-sm text-primary border-b border-outline-variant pb-2">Operational Controls</h3>
+                        
+                        <!-- Create -> Ready -->
+                        <div id="opReadyContainer" class="hidden flex items-center justify-between">
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">Shipment is CREATED. Confirm dispatch preparation readiness.</p>
+                            <button onclick="opReady()" class="px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary/95">
+                                Mark Ready to Dispatch
+                            </button>
+                        </div>
+
+                        <!-- Ready -> Dispatched -->
+                        <div id="opDispatchContainer" class="hidden space-y-3">
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">Shipment is READY. Assign carrier & dispatch.</p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <input id="carrierInput" type="text" class="px-3 py-1.5 border border-outline-variant rounded text-body-sm" placeholder="Carrier ID (e.g. carrier_fastfreight)" required/>
+                                <input id="trackingInput" type="text" class="px-3 py-1.5 border border-outline-variant rounded text-body-sm" placeholder="Tracking Number" required/>
+                                <button onclick="opDispatch()" class="bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary/95">
+                                    Dispatch Shipment
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dispatched -> Out / Deliver Attempt -->
+                        <div id="opTransitContainer" class="hidden space-y-3">
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">Shipment is DISPATCHED. Update transport state.</p>
+                            <div class="flex gap-2">
+                                <button onclick="opTransitEvent('pickup', 'Hub Origin')" class="px-3 py-1.5 bg-surface-container-high rounded text-body-sm hover:bg-surface-container-highest transition-colors">
+                                    Record Pickup
+                                </button>
+                                <button onclick="opTransitEvent('transit', 'En-route Hub')" class="px-3 py-1.5 bg-surface-container-high rounded text-body-sm hover:bg-surface-container-highest transition-colors">
+                                    Record Transit
+                                </button>
+                                <button onclick="opTransitEvent('out-for-delivery', 'Local Hub')" class="px-3 py-1.5 bg-surface-container-high rounded text-body-sm hover:bg-surface-container-highest transition-colors">
+                                    Out For Delivery
+                                </button>
+                                <button onclick="openDeliveryAttemptModal()" class="px-4 py-1.5 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary/90 ml-auto">
+                                    Record Delivery Attempt
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Delivered pending acceptance -> Buyer acceptance -->
+                        <div id="opAcceptContainer" class="hidden space-y-3">
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">Delivery captured. Verify POD and record Buyer Acceptance.</p>
+                            <div class="flex gap-2">
+                                <button onclick="openBuyerAcceptanceModal('ACCEPTED')" class="px-4 py-2 bg-green-600 text-on-primary rounded hover:bg-green-700 font-label-md text-label-md transition-colors">
+                                    Buyer Acceptance (Full)
+                                </button>
+                                <button onclick="openBuyerAcceptanceModal('PARTIALLY_ACCEPTED')" class="px-4 py-2 bg-yellow-600 text-on-primary rounded hover:bg-yellow-700 font-label-md text-label-md transition-colors">
+                                    Buyer Acceptance (Partial)
+                                </button>
+                                <button onclick="openBuyerAcceptanceModal('REJECTED')" class="px-4 py-2 bg-red-600 text-on-primary rounded hover:bg-red-700 font-label-md text-label-md transition-colors">
+                                    Reject Delivery
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Cancelled / Rejected / Accepted -> Terminal state message -->
+                        <div id="opTerminalContainer" class="hidden font-body-sm text-on-surface-variant italic">
+                            Shipment is in terminal state. No further transitions available.
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-span-12 xl:col-span-4 space-y-6">
+                    <!-- Audit timeline events -->
+                    <section class="bg-surface-container-lowest border border-outline-variant rounded p-5">
+                        <h2 class="font-headline-sm text-headline-sm text-primary mb-4">Immutable Audit Trail</h2>
+                        <div id="auditTrail" class="relative pl-4 space-y-6 before:absolute before:inset-y-0 before:left-5 before:w-px before:bg-outline-variant">
+                            <p class="text-on-surface-variant">Loading timeline...</p>
+                        </div>
+                    </section>
+
+                    <!-- Proofs of Delivery (POD) Panel -->
+                    <section id="podPanel" class="bg-surface-container-lowest border border-outline-variant rounded p-5 space-y-3">
+                        <h2 class="font-headline-sm text-headline-sm text-primary border-b border-outline-variant pb-2 flex items-center justify-between">
+                            Proof of Delivery (POD)
+                            <span id="podBadge" class="text-xs font-mono-data px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant">NONE</span>
+                        </h2>
+                        <div id="podDetails" class="text-body-sm text-on-surface-variant space-y-2">
+                            No proof of delivery captured yet.
+                        </div>
+                        <div id="podActions" class="hidden border-t border-outline-variant pt-3 mt-3 flex justify-end gap-2">
+                            <button onclick="opUploadPod()" class="w-full bg-primary text-on-primary font-bold py-2 rounded hover:bg-primary-container text-body-sm">
+                                Capture Signature POD
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Pending Corrections Panel -->
+                    <section id="correctionsPanel" class="bg-surface-container-lowest border border-outline-variant rounded p-5 space-y-3 hidden">
+                        <h2 class="font-headline-sm text-headline-sm text-primary border-b border-outline-variant pb-2">Active Corrections</h2>
+                        <div id="correctionList" class="space-y-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Correction Modal -->
+<div id="correctionModal" class="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest border border-outline-variant rounded p-6 max-w-md w-full shadow-lg">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-3 mb-4">
+            <h3 class="font-headline-sm text-headline-sm text-primary">Propose Correction</h3>
+            <button onclick="toggleModal('correctionModal', false)" class="text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="correctionForm" class="space-y-3">
+            <div>
+                <label class="block text-xs font-label-md uppercase mb-1">Declared Value Modification</label>
+                <input id="c-declared" type="number" step="0.01" class="w-full px-2 py-1.5 border border-outline-variant rounded text-body-sm font-mono-data" placeholder="New Declared Value"/>
+            </div>
+            <div>
+                <label class="block text-xs font-label-md uppercase mb-1">Expected Delivery Date Modification</label>
+                <input id="c-date" type="date" class="w-full px-2 py-1.5 border border-outline-variant rounded text-body-sm font-mono-data"/>
+            </div>
+            <div>
+                <label class="block text-xs font-label-md uppercase mb-1">Reason / Justification</label>
+                <input id="c-reason" type="text" class="w-full px-2 py-1.5 border border-outline-variant rounded text-body-sm" placeholder="Provide reason..." required/>
+            </div>
+            <div class="border-t border-outline-variant pt-3 flex justify-end gap-2">
+                <button type="button" onclick="toggleModal('correctionModal', false)" class="px-4 py-2 border border-outline-variant rounded text-label-md font-label-md text-on-surface hover:bg-surface-container-low">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded text-label-md font-label-md hover:bg-primary/90">
+                    Propose
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delivery Attempt Modal -->
+<div id="deliveryAttemptModal" class="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest border border-outline-variant rounded p-6 max-w-md w-full shadow-lg">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-3 mb-4">
+            <h3 class="font-headline-sm text-headline-sm text-primary">Record Delivery Attempt</h3>
+            <button onclick="toggleModal('deliveryAttemptModal', false)" class="text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="deliveryAttemptForm" class="space-y-3">
+            <div>
+                <label class="block text-xs font-label-md uppercase mb-1">Delivery Success Status</label>
+                <select id="da-success" onchange="toggleDaReason()" class="w-full px-2 py-1.5 border border-outline-variant rounded text-body-sm cursor-pointer">
+                    <option value="true">Successful Delivery</option>
+                    <option value="false">Delivery Failed</option>
+                </select>
+            </div>
+            <div id="da-reason-container" class="hidden">
+                <label class="block text-xs font-label-md uppercase mb-1">Failure Exception Code</label>
+                <input id="da-reason" type="text" class="w-full px-2 py-1.5 border border-outline-variant rounded text-body-sm" placeholder="CARRIER_DELIVERY_FAILED"/>
+            </div>
+            <div id="da-items-container" class="space-y-2 border-t border-outline-variant pt-2">
+                <h4 class="text-xs font-label-md uppercase mb-1">Delivered Quantities</h4>
+                <div id="da-items-list" class="space-y-1">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="border-t border-outline-variant pt-3 flex justify-end gap-2">
+                <button type="button" onclick="toggleModal('deliveryAttemptModal', false)" class="px-4 py-2 border border-outline-variant rounded text-label-md font-label-md text-on-surface hover:bg-surface-container-low">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded text-label-md font-label-md hover:bg-primary/90">
+                    Record Attempt
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Buyer Acceptance Modal -->
+<div id="buyerAcceptanceModal" class="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest border border-outline-variant rounded p-6 max-w-md w-full shadow-lg">
+        <div class="flex justify-between items-center border-b border-outline-variant pb-3 mb-4">
+            <h3 class="font-headline-sm text-headline-sm text-primary">Record Buyer Acceptance</h3>
+            <button onclick="toggleModal('buyerAcceptanceModal', false)" class="text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <form id="buyerAcceptanceForm" class="space-y-3">
+            <input type="hidden" id="ba-status"/>
+            <div class="space-y-2 max-h-[40vh] overflow-y-auto thin-scrollbar pr-1" id="ba-items-container">
+                <!-- Dynamically populated item inputs -->
+            </div>
+            <div class="border-t border-outline-variant pt-3 flex justify-end gap-2">
+                <button type="button" onclick="toggleModal('buyerAcceptanceModal', false)" class="px-4 py-2 border border-outline-variant rounded text-label-md font-label-md text-on-surface hover:bg-surface-container-low">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded text-label-md font-label-md hover:bg-primary/90">
+                    Submit Acceptance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const byId = (id) => document.getElementById(id);
+    const escapeHtml = (val) => String(val).replace(/[&<>'"]/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    })[c]);
+    
+    const fmtInr = (val) => new Intl.NumberFormat("en-IN", {
+        style: "currency", currency: "INR", maximumFractionDigits: 0
+    }).format(Number(val));
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const deliveryId = urlParams.get("id");
+
+    let currentDelivery = null;
+
+    function toggleModal(id, open) {
+        byId(id).style.display = open ? "flex" : "none";
+    }
+
+    async function loadDelivery() {
+        if (!deliveryId) {
+            alert("No delivery ID specified.");
+            window.location.href = "/deliveries";
+            return;
+        }
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        if (!token) return;
+
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}`, {
+                headers: { "X-Demo-Token": token }
+            });
+            if (!res.ok) throw new Error("Failed to load details");
+            const d = await res.json();
+            currentDelivery = d;
+
+            // Update details
+            byId("delNumBreadcrumb").textContent = `#${d.delivery_number}`;
+            byId("delNumHeader").textContent = `Delivery #${d.delivery_number}`;
+            
+            const badge = byId("statusBadge");
+            badge.textContent = d.status;
+            badge.className = `px-2.5 py-0.5 rounded text-label-md font-label-md border ${getStatusBadgeClass(d.status)}`;
+
+            byId("declaredVal").textContent = fmtInr(d.declared_value);
+            byId("verifiedVal").textContent = fmtInr(d.verified_delivered_value);
+
+            byId("shipFromTitle").textContent = d.ship_from.name;
+            byId("shipFromAddress").textContent = d.ship_from.address;
+            byId("shipToTitle").textContent = d.ship_to.name;
+            byId("shipToAddress").textContent = d.ship_to.address;
+
+            byId("lastUpdated").textContent = `Last updated: ${new Date(d.dispatch_date || d.created_at).toLocaleTimeString()}`;
+
+            // Warning Banner
+            const banner = byId("warningBanner");
+            if (d.exception_code) {
+                banner.classList.remove("hidden");
+                byId("warningTitle").textContent = `Warning: ${d.exception_code.replace('_', ' ')}`;
+                byId("warningText").textContent = getExceptionMsg(d.exception_code);
+            } else {
+                banner.classList.add("hidden");
+            }
+
+            // Items table
+            const tbody = byId("itemsTableBody");
+            tbody.innerHTML = d.items.map(item => {
+                const totalDiff = Number(item.ordered_quantity) - Number(item.accepted_quantity);
+                const barWidth = Math.round((Number(item.accepted_quantity) / (Number(item.ordered_quantity) || 1)) * 100);
+                return `
+                    <tr class="hover:bg-surface-bright transition-colors border-b border-outline-variant group">
+                        <td class="p-3 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-bright transition-colors">
+                            <div class="font-semibold text-primary">${escapeHtml(item.sku)}</div>
+                            <div class="font-body-sm text-body-sm text-on-surface-variant truncate w-48 font-sans">${escapeHtml(item.description)}</div>
+                        </td>
+                        <td class="p-3 text-right">${Number(item.ordered_quantity).toLocaleString()}</td>
+                        <td class="p-3 text-right">${Number(item.dispatched_quantity).toLocaleString()}</td>
+                        <td class="p-3 text-right">${Number(item.delivered_quantity).toLocaleString()}</td>
+                        <td class="p-3 text-right">${Number(item.accepted_quantity).toLocaleString()}</td>
+                        <td class="p-3 text-right text-error">${Number(item.rejected_quantity).toLocaleString()}</td>
+                        <td class="p-3 w-48">
+                            <div class="h-2 w-full bg-surface-container-high rounded flex overflow-hidden">
+                                <div class="bg-primary h-full" style="width: ${barWidth}%"></div>
+                                <div class="bg-error h-full" style="width: ${100 - barWidth}%"></div>
+                            </div>
+                            <div class="flex justify-between mt-1 text-[10px] text-on-surface-variant font-sans">
+                                <span>Acc: ${Number(item.accepted_quantity).toLocaleString()}</span>
+                                ${item.rejection_reason ? `<span class="text-error" title="${escapeHtml(item.rejection_reason)}">Rej: ${Number(item.rejected_quantity).toLocaleString()}</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+
+            // Setup Operational Controls Panel based on status
+            setupOpsPanel(d.status);
+
+            // Audit timeline
+            const audit = byId("auditTrail");
+            audit.innerHTML = d.events.map(e => `
+                <div class="relative">
+                    <div class="absolute -left-6 bg-surface bg-surface-bright p-0.5">
+                        <div class="w-3 h-3 rounded-full bg-primary border-2 border-surface-container-lowest"></div>
+                    </div>
+                    <div class="font-label-md text-label-md text-on-surface-variant mb-0.5">${new Date(e.occurred_at).toUTCString()}</div>
+                    <div class="font-body-md text-body-md text-primary font-semibold">${escapeHtml(e.event_type.replace("delivery.", "").toUpperCase())}</div>
+                    ${e.notes ? `<div class="font-body-sm text-[12px] text-on-surface-variant mt-0.5">${escapeHtml(e.notes)}</div>` : ''}
+                </div>
+            `).join("");
+
+            // POD Panel
+            const podDetails = byId("podDetails");
+            const podBadge = byId("podBadge");
+            const podActions = byId("podActions");
+            if (d.proofs.length === 0) {
+                podBadge.textContent = "NONE";
+                podDetails.innerHTML = "No proof of delivery captured yet.";
+                if (d.status.includes("PENDING")) {
+                    podActions.classList.remove("hidden");
+                } else {
+                    podActions.classList.add("hidden");
+                }
+            } else {
+                const latestPod = d.proofs[0];
+                podBadge.textContent = latestPod.verification_status;
+                podBadge.className = `text-xs font-mono-data px-2 py-0.5 rounded ${latestPod.verification_status === 'VERIFIED' ? 'bg-green-100 text-green-700' : latestPod.verification_status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
+                podDetails.innerHTML = `
+                    <div><strong>Type:</strong> ${escapeHtml(latestPod.proof_type)}</div>
+                    <div><strong>Captured:</strong> ${new Date(latestPod.captured_at).toLocaleTimeString()}</div>
+                    <div><strong>Recipient:</strong> ${escapeHtml(latestPod.recipient_name || 'N/A')}</div>
+                    <div><strong>Object Key:</strong> <code class="text-xs break-all">${escapeHtml(latestPod.restricted_object_key)}</code></div>
+                `;
+                podActions.classList.add("hidden");
+            }
+
+            // Active Corrections Panel
+            const corrList = byId("correctionList");
+            const corrPanel = byId("correctionsPanel");
+            const pendingCorrs = d.corrections.filter(c => c.status === "PENDING");
+            if (pendingCorrs.length > 0) {
+                corrPanel.classList.remove("hidden");
+                corrList.innerHTML = pendingCorrs.map(c => `
+                    <div class="border border-outline-variant p-3 rounded bg-surface-container-low space-y-2">
+                        <div class="text-xs font-bold uppercase">${escapeHtml(c.correction_type)}</div>
+                        <div class="text-body-sm font-body-sm text-on-surface-variant">Reason: ${escapeHtml(c.reason)}</div>
+                        <div class="flex gap-2 justify-end mt-2">
+                            <button onclick="reviewCorr('${c.id}', false)" class="px-2 py-1 bg-red-600 text-on-primary rounded text-xs">Reject</button>
+                            <button onclick="reviewCorr('${c.id}', true)" class="px-2 py-1 bg-green-600 text-on-primary rounded text-xs">Approve</button>
+                        </div>
+                    </div>
+                `).join("");
+            } else {
+                corrPanel.classList.add("hidden");
+            }
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function getExceptionMsg(code) {
+        switch(code) {
+            case "INVOICE_MISMATCH": return "Declared value does not match ERP record.";
+            case "EARLY_DELIVERY": return "Shipment was delivered prior to dispatch verification timestamp.";
+            case "INVOICE_CANCELLED": return "Associated invoice was cancelled after dispatch.";
+            default: return "LOGISTICS_AUDIT_WARNING: Review trail for anomalies.";
+        }
+    }
+
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case "DELIVERED": return "bg-green-100 text-green-700 border-green-300";
+            case "PARTIALLY_ACCEPTED": return "bg-yellow-100 text-yellow-700 border-yellow-300";
+            case "REJECTED":
+            case "DELIVERY_FAILED": return "bg-red-100 text-red-700 border-red-300";
+            case "IN_TRANSIT":
+            case "OUT_FOR_DELIVERY": return "bg-blue-100 text-blue-700 border-blue-300";
+            default: return "bg-gray-100 text-gray-700 border-gray-300";
+        }
+    }
+
+    function setupOpsPanel(status) {
+        byId("opReadyContainer").classList.add("hidden");
+        byId("opDispatchContainer").classList.add("hidden");
+        byId("opTransitContainer").classList.add("hidden");
+        byId("opAcceptContainer").classList.add("hidden");
+        byId("opTerminalContainer").classList.add("hidden");
+
+        if (status === "CREATED") {
+            byId("opReadyContainer").classList.remove("hidden");
+        } else if (status === "READY_TO_DISPATCH") {
+            byId("opDispatchContainer").classList.remove("hidden");
+        } else if (status === "DISPATCHED" || status === "IN_TRANSIT" || status === "OUT_FOR_DELIVERY") {
+            byId("opTransitContainer").classList.remove("hidden");
+        } else if (status === "DELIVERED_PENDING_ACCEPTANCE" || status === "PARTIAL_PENDING_ACCEPTANCE") {
+            byId("opAcceptContainer").classList.remove("hidden");
+        } else {
+            byId("opTerminalContainer").classList.remove("hidden");
+        }
+    }
+
+    // --- State Operations API Calls ---
+
+    async function opReady() {
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/ready`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({ actor: "seller_operator" })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    async function opDispatch() {
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        const carrier = byId("carrierInput").value;
+        const tracking = byId("trackingInput").value;
+        if (!carrier || !tracking) {
+            alert("Carrier and Tracking number are required.");
+            return;
+        }
+
+        const itemsDispatch = {};
+        currentDelivery.items.forEach(item => {
+            itemsDispatch[item.sku] = Number(item.ordered_quantity);
+        });
+
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/dispatch`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    carrier_id: carrier,
+                    tracking_number: tracking,
+                    items_dispatch: itemsDispatch,
+                    actor: "seller_operator"
+                })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    async function opTransitEvent(type, location) {
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/events`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_type: `delivery.${type}`,
+                    location: location,
+                    notes: `State verification auto-logged at ${location}`,
+                    actor: "carrier_operator"
+                })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    function openDeliveryAttemptModal() {
+        const list = byId("da-items-list");
+        list.innerHTML = currentDelivery.items.map(item => `
+            <div class="flex justify-between items-center text-xs">
+                <span>${escapeHtml(item.sku)} (${escapeHtml(item.description)})</span>
+                <input type="number" id="da-qty-${item.sku}" class="w-20 px-1 py-0.5 border rounded text-right font-mono-data" value="${item.dispatched_quantity}"/>
+            </div>
+        `).join("");
+        toggleModal("deliveryAttemptModal", true);
+    }
+
+    function toggleDaReason() {
+        const failed = byId("da-success").value === "false";
+        byId("da-reason-container").style.display = failed ? "block" : "none";
+    }
+
+    byId("deliveryAttemptForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        const success = byId("da-success").value === "true";
+        const reason = byId("da-reason").value || null;
+
+        const itemsDelivered = {};
+        currentDelivery.items.forEach(item => {
+            const val = parseFloat(byId(`da-qty-${item.sku}`).value);
+            itemsDelivered[item.sku] = val;
+        });
+
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/delivery-attempt`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    success: success,
+                    failure_reason: reason,
+                    items_delivered: itemsDelivered,
+                    actor: "carrier_operator"
+                })
+            });
+            if (res.ok) {
+                toggleModal("deliveryAttemptModal", false);
+                loadDelivery();
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    async function opUploadPod() {
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/proofs`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    proof_type: "SIGNATURE",
+                    restricted_object_key: `pod/sig_${deliveryId}.png`,
+                    mime_type: "image/png",
+                    recipient_name: "Operations Agent",
+                    recipient_role: "RECEIVER",
+                    actor: "carrier_operator"
+                })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    function openBuyerAcceptanceModal(status) {
+        byId("ba-status").value = status;
+        const container = byId("ba-items-container");
+        if (status === "REJECTED") {
+            container.innerHTML = currentDelivery.items.map(item => `
+                <div class="border border-outline-variant p-2 rounded text-xs space-y-1">
+                    <div class="font-bold">${escapeHtml(item.sku)}</div>
+                    <input type="hidden" id="ba-act-${item.sku}" value="0"/>
+                    <input type="hidden" id="ba-rej-${item.sku}" value="${item.delivered_quantity}"/>
+                    <div>Rejection Reason:</div>
+                    <input type="text" id="ba-reason-${item.sku}" class="w-full px-2 py-1 border rounded" placeholder="E.g., damaged Turbine valve" required/>
+                </div>
+            `).join("");
+        } else if (status === "PARTIALLY_ACCEPTED") {
+            container.innerHTML = currentDelivery.items.map(item => `
+                <div class="border border-outline-variant p-2 rounded text-xs space-y-2">
+                    <div class="font-bold">${escapeHtml(item.sku)} (Delivered: ${item.delivered_quantity})</div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label>Accepted Qty</label>
+                            <input type="number" id="ba-act-${item.sku}" class="w-full px-2 py-1 border rounded" value="${item.delivered_quantity}"/>
+                        </div>
+                        <div class="flex-1">
+                            <label>Rejected Qty</label>
+                            <input type="number" id="ba-rej-${item.sku}" class="w-full px-2 py-1 border rounded" value="0"/>
+                        </div>
+                    </div>
+                    <div>Reason (if any rejected):</div>
+                    <input type="text" id="ba-reason-${item.sku}" class="w-full px-2 py-1 border rounded" placeholder="Reason"/>
+                </div>
+            `).join("");
+        } else {
+            container.innerHTML = currentDelivery.items.map(item => `
+                <div class="border border-outline-variant p-2 rounded text-xs">
+                    <div class="font-bold">${escapeHtml(item.sku)}</div>
+                    <input type="hidden" id="ba-act-${item.sku}" value="${item.delivered_quantity}"/>
+                    <input type="hidden" id="ba-rej-${item.sku}" value="0"/>
+                    <div class="text-on-surface-variant font-semibold">Accepting full quantity (${item.delivered_quantity})</div>
+                </div>
+            `).join("");
+        }
+        toggleModal("buyerAcceptanceModal", true);
+    }
+
+    byId("buyerAcceptanceForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        const status = byId("ba-status").value;
+
+        const itemsAcceptance = currentDelivery.items.map(item => {
+            const act = parseFloat(byId(`ba-act-${item.sku}`).value);
+            const rej = parseFloat(byId(`ba-rej-${item.sku}`).value);
+            const reason = byId(`ba-reason-${item.sku}`)?.value || null;
+            return {
+                sku: item.sku,
+                accepted_qty: act,
+                rejected_qty: rej,
+                reason: reason
+            };
+        });
+
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/acceptance`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    status: status,
+                    items_acceptance: itemsAcceptance,
+                    actor: "buyer_receiver"
+                })
+            });
+            if (res.ok) {
+                toggleModal("buyerAcceptanceModal", false);
+                loadDelivery();
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    async function cancelShipmentPrompt() {
+        const reason = prompt("Enter cancellation reason:");
+        if (reason === null) return;
+        
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/cancel`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({ reason: reason, actor: "delivery_reviewer" })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    byId("correctionForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        const decVal = byId("c-declared").value;
+        const expDate = byId("c-date").value;
+        const reason = byId("c-reason").value;
+
+        const changes = {};
+        if (decVal) changes["declared_value"] = parseFloat(decVal);
+        if (expDate) changes["expected_delivery_date"] = expDate;
+
+        try {
+            const res = await fetch(`/api/v1/deliveries/${deliveryId}/corrections`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    correction_type: "VALUE_CORRECTION",
+                    proposed_changes: changes,
+                    reason: reason,
+                    actor: "seller_operator"
+                })
+            });
+            if (res.ok) {
+                toggleModal("correctionModal", false);
+                byId("correctionForm").reset();
+                loadDelivery();
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    async function reviewCorr(corrId, approve) {
+        const token = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+        const action = approve ? "approve" : "reject";
+        try {
+            const res = await fetch(`/api/v1/corrections/${corrId}/${action}`, {
+                method: "POST",
+                headers: { "X-Demo-Token": token, "Content-Type": "application/json" },
+                body: JSON.stringify({ actor: "delivery_reviewer" })
+            });
+            if (res.ok) loadDelivery();
+        } catch (err) { alert(err.message); }
+    }
+
+    // --- Authentication ---
+
+    async function checkAuth(token) {
+        try {
+            const res = await fetch("/api/v1/dashboard", { headers: { "X-Demo-Token": token } });
+            if (!res.ok) throw new Error("Invalid Token");
+            sessionStorage.setItem("xyena-delivery-demo-ui-token", token);
+            byId("appRoot").classList.add("access-panel-connected");
+            byId("accessPanel").style.display = "none";
+            loadDelivery();
+        } catch (err) {
+            sessionStorage.removeItem("xyena-delivery-demo-ui-token");
+            byId("appRoot").classList.remove("access-panel-connected");
+            byId("accessPanel").style.display = "flex";
+            const msg = byId("formMessage");
+            msg.textContent = err.message;
+            msg.classList.remove("hidden");
+        }
+    }
+
+    byId("accessForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        checkAuth(byId("token").value);
+    });
+
+    byId("disconnectButton").addEventListener("click", () => {
+        sessionStorage.removeItem("xyena-delivery-demo-ui-token");
+        window.location.reload();
+    });
+
+    const savedToken = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+    if (savedToken) {
+        checkAuth(savedToken);
+        
+        const eventSource = new EventSource("/api/v1/events/stream");
+        eventSource.onmessage = (event) => {
+            console.log("SSE update:", event.data);
+            const liveText = byId("liveStatus");
+            liveText.textContent = "Live DB sync: Updated just now";
+            liveText.classList.add("text-error");
+            setTimeout(() => {
+                liveText.textContent = "Live DB sync: Active";
+                liveText.classList.remove("text-error");
+            }, 3000);
+            loadDelivery();
+        };
+    }
+</script>
+</body>
+</html>

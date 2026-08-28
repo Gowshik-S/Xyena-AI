@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Operations Dashboard - Xyena Delivery</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .pulse-live {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(.8); opacity: 0.5; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        
+        /* Thin Scrollbar for data density */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f7f9fb; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c6c6cd; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #76777d; 
+        }
+
+        .access-panel-connected .main-content {
+            filter: none;
+            pointer-events: auto;
+        }
+        .main-content {
+            filter: blur(4px);
+            pointer-events: none;
+            transition: filter 0.3s ease;
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary-container": "#271901",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-bright": "#f7f9fb",
+                      "surface-tint": "#565e74",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#d0e1fb",
+                      "surface": "#f7f9fb",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-primary-fixed": "#131b2e",
+                      "on-secondary-container": "#54647a",
+                      "on-tertiary-container": "#98805d",
+                      "primary": "#000000",
+                      "primary-container": "#131b2e",
+                      "surface-variant": "#e0e3e5",
+                      "surface-container-high": "#e6e8ea",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-surface": "#191c1e",
+                      "outline": "#76777d",
+                      "background": "#f7f9fb",
+                      "on-tertiary-fixed": "#271901",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "on-primary-container": "#7c839b",
+                      "outline-variant": "#c6c6cd",
+                      "secondary-fixed": "#d3e4fe",
+                      "tertiary-fixed": "#fcdeb5",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#505f76",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#d8dadc",
+                      "on-background": "#191c1e",
+                      "inverse-primary": "#bec6e0",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "primary-fixed": "#dae2fd",
+                      "primary-fixed-dim": "#bec6e0",
+                      "tertiary": "#000000",
+                      "inverse-surface": "#2d3133",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "surface-container": "#eceef0",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "on-error": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-surface-variant": "#45464d",
+                      "status-created": "#505f76", 
+                      "status-ready": "#000000", 
+                      "status-dispatched": "#565e74", 
+                      "status-transit": "#7c839b", 
+                      "status-out": "#131b2e", 
+                      "warning": "#eab308" 
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "row-height-standard": "48px",
+                      "row-height-dense": "32px",
+                      "gutter-table": "12px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-sm": ["Inter"],
+                      "mono-data": ["monospace"],
+                      "body-lg": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"]
+              },
+              "fontSize": {
+                      "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "mono-data": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden flex flex-col h-screen">
+
+<!-- Synthetic Environment Notification Strip -->
+<div class="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-1.5 text-xs text-yellow-800 dark:text-yellow-400 flex items-center justify-center shrink-0">
+    <span class="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
+    Synthetic Demonstration Environment — all data is synthetic. No real logistics endpoints are connected.
+</div>
+
+<div class="flex flex-1 overflow-hidden relative" id="appRoot">
+    <!-- Access Control Panel Overlay -->
+    <div id="accessPanel" class="absolute inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest border border-outline-variant rounded p-6 max-w-md w-full shadow-lg">
+            <h2 class="font-headline-md text-headline-md text-primary mb-2">Connect to Demonstration Dataset</h2>
+            <p class="font-body-md text-body-md text-on-surface-variant mb-4">
+                Enter the Delivery Demo UI Token to unlock real-time operations dashboards and evidence.
+            </p>
+            <form id="accessForm" class="space-y-4">
+                <div>
+                    <label class="sr-only" for="token">UI Token</label>
+                    <input id="token" type="password" autocomplete="off" class="w-full px-3 py-2 border border-outline-variant rounded bg-surface-container-lowest text-body-md focus:border-primary focus:ring-1 focus:ring-primary/10 outline-none" placeholder="DELIVERY_DEMO_UI_TOKEN" required/>
+                </div>
+                <button type="submit" class="w-full py-2 bg-primary text-on-primary font-bold rounded hover:bg-primary-container transition-colors">
+                    Unlock Console
+                </button>
+            </form>
+            <p id="formMessage" class="text-xs text-error mt-2 font-mono-data hidden"></p>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="bg-surface-container-low dark:bg-surface-container-highest text-primary dark:text-primary-fixed w-[240px] border-r border-outline-variant dark:border-outline flex flex-col pt-4 pb-4 px-2 shrink-0">
+        <div class="px-3 mb-6 flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant shrink-0">
+                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdTvYQomTLvrifXW8avBsND7333ltl6df-5-iDpA6PRxDfsiVTwnu-6S5cvjNtUAO8H3_E_WvyATHA6T5w7gc4nOkiuXN9lDFtdrpL8r2nnwyPWjNidclJFV2TE8hhMCpSjlRpuxZoM12du8x8MF7zujY7fMx2qW3zOxXJir3N_LHeuUa0xQb3G98_nKTjt74GFI2-WK0319V60H9wUw_Lj8AN6pVqW-XuJYwELGpvP1rXwP_suFhOEQ"/>
+            </div>
+            <div>
+                <div class="font-headline-sm text-headline-sm text-on-surface truncate" title="Logistics Manager">Logistics Manager</div>
+                <div class="font-body-sm text-body-sm text-on-surface-variant truncate" title="System Administrator">System Administrator</div>
+            </div>
+        </div>
+        <div class="flex-1 space-y-1">
+            <a class="flex items-center px-3 py-2 rounded bg-secondary-container/20 text-primary font-bold transition-all group" href="/">
+                <span class="material-symbols-outlined mr-3 text-[20px]">dashboard</span>
+                <span class="font-label-md text-label-md">Dashboard</span>
+            </a>
+            <a class="flex items-center px-3 py-2 rounded text-on-secondary-container hover:bg-surface-container-high transition-all group" href="/deliveries">
+                <span class="material-symbols-outlined mr-3 text-[20px]">local_shipping</span>
+                <span class="font-label-md text-label-md">Deliveries</span>
+            </a>
+        </div>
+        <div class="mt-auto border-t border-outline-variant pt-2 space-y-1">
+            <button id="disconnectButton" class="w-full flex items-center px-3 py-2 rounded text-error hover:bg-error-container/10 transition-all font-bold">
+                <span class="material-symbols-outlined mr-3 text-[20px]">lock</span>
+                <span class="font-label-md text-label-md">Lock Console</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden main-content">
+        <!-- Top Navigation Header -->
+        <header class="bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center h-row-height-standard px-container-padding w-full shrink-0 z-10">
+            <div class="flex items-center space-x-4">
+                <div class="font-headline-lg text-headline-lg text-primary tracking-tighter">Xyena Delivery</div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center text-on-surface-variant">
+                    <div class="relative flex items-center justify-center w-3 h-3 mr-2">
+                        <div class="absolute w-2 h-2 rounded-full bg-error"></div>
+                        <div class="absolute w-2 h-2 rounded-full bg-error pulse-live"></div>
+                    </div>
+                    <span id="liveStatus" class="font-label-md text-label-md text-on-surface-variant">Live DB sync: Active</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Workspace -->
+        <main class="flex-1 overflow-y-auto bg-surface-bright p-container-padding">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="font-headline-lg text-headline-lg text-on-surface mb-1">Operations Overview</h1>
+                    <p class="font-body-md text-body-md text-on-surface-variant">Real-time B2B logistics evidence aggregate.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="/deliveries" class="px-4 py-2 bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-[18px]">list</span> Go to Deliveries
+                    </a>
+                </div>
+            </div>
+
+            <!-- Bento Layout -->
+            <div class="grid grid-cols-12 gap-gutter-table auto-rows-[minmax(120px,auto)]">
+                
+                <!-- Status metrics grid -->
+                <div class="col-span-12 xl:col-span-8 grid grid-cols-5 gap-unit">
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+                        <div class="flex justify-between items-start">
+                            <span class="font-label-md text-label-md text-on-surface-variant">CREATED</span>
+                            <span class="material-symbols-outlined text-outline-variant text-[16px]">inventory_2</span>
+                        </div>
+                        <div id="cnt-CREATED" class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 transition-colors">—</div>
+                    </div>
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+                        <div class="flex justify-between items-start">
+                            <span class="font-label-md text-label-md text-on-surface-variant">READY DISPATCH</span>
+                            <span class="material-symbols-outlined text-outline-variant text-[16px]">conveyor_belt</span>
+                        </div>
+                        <div id="cnt-READY_TO_DISPATCH" class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 transition-colors">—</div>
+                    </div>
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+                        <div class="flex justify-between items-start">
+                            <span class="font-label-md text-label-md text-on-surface-variant">DISPATCHED</span>
+                            <span class="material-symbols-outlined text-outline-variant text-[16px]">flight_takeoff</span>
+                        </div>
+                        <div id="cnt-DISPATCHED" class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 transition-colors">—</div>
+                    </div>
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+                        <div class="flex justify-between items-start">
+                            <span class="font-label-md text-label-md text-on-surface-variant">IN TRANSIT</span>
+                            <span class="material-symbols-outlined text-outline-variant text-[16px]">local_shipping</span>
+                        </div>
+                        <div id="cnt-IN_TRANSIT" class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 transition-colors">—</div>
+                    </div>
+                    <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex flex-col justify-between group hover:border-outline transition-colors border-b-2 border-b-status-out">
+                        <div class="flex justify-between items-start">
+                            <span class="font-label-md text-label-md text-on-surface-variant">OUT FOR DELIV</span>
+                            <span class="material-symbols-outlined text-status-out text-[16px]">route</span>
+                        </div>
+                        <div id="cnt-OUT_FOR_DELIVERY" class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 text-status-out">—</div>
+                    </div>
+                </div>
+
+                <!-- Value Summary Card -->
+                <div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded p-4 flex flex-col row-span-1">
+                    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-[18px]">account_balance</span>
+                        Value Summary (24h)
+                    </h3>
+                    <div class="flex-1 flex flex-col justify-center space-y-4">
+                        <div>
+                            <div class="flex justify-between text-label-md font-label-md mb-1">
+                                <span class="text-on-surface">Total Accepted Value</span>
+                                <span id="totalAcceptedVal" class="font-mono-data text-primary">—</span>
+                            </div>
+                            <div class="w-full bg-surface-container-high h-2 rounded overflow-hidden">
+                                <div id="acceptedBar" class="bg-primary h-full w-[0%] transition-all duration-500"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-label-md font-label-md mb-1">
+                                <span class="text-on-surface-variant">Declared Value</span>
+                                <span id="totalDeclaredVal" class="font-mono-data text-outline">—</span>
+                            </div>
+                            <div class="w-full bg-surface-container-high h-2 rounded overflow-hidden">
+                                <div id="declaredBar" class="bg-outline h-full w-[100%]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Critical Alerts Panel -->
+                <div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-error/30 rounded overflow-hidden row-span-2 flex flex-col min-h-[300px]">
+                    <div class="bg-error-container/20 px-4 py-3 border-b border-error/20 flex justify-between items-center">
+                        <h3 class="font-headline-sm text-headline-sm text-on-error-container flex items-center">
+                            <span class="material-symbols-outlined mr-2 text-[18px] text-error">warning</span>
+                            Critical Alerts
+                        </h3>
+                        <span id="alertCountBadge" class="bg-error text-on-error font-mono-data text-[10px] px-2 py-0.5 rounded-full">0 ACTIVE</span>
+                    </div>
+                    <div class="p-0 flex-1 overflow-y-auto">
+                        <ul id="alertList" class="divide-y divide-outline-variant/30">
+                            <li class="p-3 text-center text-on-surface-variant font-body-sm">Loading alerts...</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Aging late deliveries -->
+                <div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded p-4 row-span-2 flex flex-col min-h-[300px]">
+                    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center">
+                        <span class="material-symbols-outlined mr-2 text-[18px]">schedule</span>
+                        Aging Deliveries (Late)
+                    </h3>
+                    <div class="flex-1 flex flex-col justify-end space-y-4 pb-2">
+                        <div class="relative flex items-center">
+                            <div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">1 Day</div>
+                            <div class="flex-1 h-6 bg-surface-container-high rounded overflow-hidden flex items-center relative">
+                                <div id="age-1" class="bg-warning h-full w-[0%] rounded transition-all duration-500"></div>
+                                <span id="age-1-text" class="absolute left-2 font-mono-data text-[10px] text-on-surface">0</span>
+                            </div>
+                        </div>
+                        <div class="relative flex items-center">
+                            <div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">3 Days</div>
+                            <div class="flex-1 h-6 bg-surface-container-high rounded overflow-hidden flex items-center relative">
+                                <div id="age-3" class="bg-error/70 h-full w-[0%] rounded transition-all duration-500"></div>
+                                <span id="age-3-text" class="absolute left-2 font-mono-data text-[10px] text-on-surface">0</span>
+                            </div>
+                        </div>
+                        <div class="relative flex items-center">
+                            <div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">5+ Days</div>
+                            <div class="flex-1 h-6 bg-surface-container-high rounded overflow-hidden flex items-center relative">
+                                <div id="age-5" class="bg-error h-full w-[0%] rounded transition-all duration-500"></div>
+                                <span id="age-5-text" class="absolute left-2 font-mono-data text-[10px] text-on-surface">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Audit timeline events -->
+                <div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded overflow-hidden row-span-2 flex flex-col min-h-[300px]">
+                    <div class="px-4 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+                        <h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center">
+                            <span class="material-symbols-outlined mr-2 text-[18px]">feed</span>
+                            Live Events Feed
+                        </h3>
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-error pulse-live mr-1.5"></div>
+                            <span class="font-label-md text-label-md text-error tracking-widest">LIVE</span>
+                        </div>
+                    </div>
+                    <div id="liveFeedList" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <p class="text-center text-on-surface-variant font-body-sm">Waiting for events...</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    const byId = (id) => document.getElementById(id);
+    const escapeHtml = (val) => String(val).replace(/[&<>'"]/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    })[c]);
+    
+    const fmtInr = (val) => new Intl.NumberFormat("en-IN", {
+        style: "currency", currency: "INR", maximumFractionDigits: 0
+    }).format(Number(val));
+
+    async function loadDashboardData(token) {
+        try {
+            const res = await fetch("/api/v1/dashboard", {
+                headers: { "X-Demo-Token": token }
+            });
+            if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized token" : "Failed to load");
+            const data = await res.json();
+            
+            // Set counts
+            Object.keys(data.counts).forEach(status => {
+                const el = byId(`cnt-${status}`);
+                if (el) el.textContent = data.counts[status].toLocaleString();
+            });
+
+            // Set Values
+            byId("totalAcceptedVal").textContent = fmtInr(data.total_accepted_value);
+            byId("totalDeclaredVal").textContent = fmtInr(data.total_declared_value);
+            
+            const dec = Number(data.total_declared_value) || 1;
+            const accPercentage = Math.round((Number(data.total_accepted_value) / dec) * 100);
+            byId("acceptedBar").style.width = `${accPercentage}%`;
+
+            // Set Aging
+            const ageTotal = (data.aging_report["1_day"] + data.aging_report["3_days"] + data.aging_report["5_plus_days"]) || 1;
+            byId("age-1").style.width = `${Math.round((data.aging_report["1_day"] / ageTotal) * 100)}%`;
+            byId("age-3").style.width = `${Math.round((data.aging_report["3_days"] / ageTotal) * 100)}%`;
+            byId("age-5").style.width = `${Math.round((data.aging_report["5_plus_days"] / ageTotal) * 100)}%`;
+            byId("age-1-text").textContent = data.aging_report["1_day"];
+            byId("age-3-text").textContent = data.aging_report["3_days"];
+            byId("age-5-text").textContent = data.aging_report["5_plus_days"];
+
+            // Set Alerts
+            byId("alertCountBadge").textContent = `${data.alerts.length} ACTIVE`;
+            const alertList = byId("alertList");
+            if (data.alerts.length === 0) {
+                alertList.innerHTML = `<li class="p-4 text-center text-on-surface-variant/60 font-body-sm">No critical warnings found.</li>`;
+            } else {
+                alertList.innerHTML = data.alerts.map(alert => `
+                    <li class="p-3 hover:bg-surface-container-low transition-colors cursor-pointer border-l-4 ${alert.type === 'INVOICE_MISMATCH' ? 'border-warning' : 'border-error'}" onclick="window.location.href='/detail?id=${alert.delivery_id}'">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-label-md text-label-md text-on-surface">${escapeHtml(alert.type.replace('_', ' '))}</span>
+                        </div>
+                        <div class="font-mono-data text-body-sm text-on-surface-variant mb-1">Shipment #${escapeHtml(alert.delivery_number)}</div>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">${escapeHtml(alert.message)}</p>
+                    </li>
+                `).join("");
+            }
+
+            // Set Live Events Feed
+            const feedList = byId("liveFeedList");
+            if (data.recent_audit_trail.length === 0) {
+                feedList.innerHTML = `<p class="text-center text-on-surface-variant font-body-sm">No events found.</p>`;
+            } else {
+                feedList.innerHTML = data.recent_audit_trail.map((audit, idx) => `
+                    <div class="relative pl-6">
+                        ${idx < data.recent_audit_trail.length - 1 ? '<div class="absolute left-1.5 top-1.5 bottom-[-16px] w-[1px] bg-outline-variant"></div>' : ''}
+                        <div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-primary border-2 border-surface-container-lowest shadow-sm z-10"></div>
+                        <div class="font-mono-data text-[10px] text-on-surface-variant mb-0.5">${new Date(audit.occurred_at).toLocaleTimeString()}</div>
+                        <div class="font-body-sm text-body-sm text-on-surface">${escapeHtml(audit.event_type)} on <a class="font-mono-data font-semibold text-[#0ea5e9] hover:underline" href="/detail?id=${audit.aggregate_id}">ID ${escapeHtml(audit.aggregate_id.slice(0,8))}</a></div>
+                    </div>
+                `).join("");
+            }
+
+            sessionStorage.setItem("xyena-delivery-demo-ui-token", token);
+            byId("appRoot").classList.add("access-panel-connected");
+            byId("accessPanel").style.display = "none";
+        } catch (err) {
+            sessionStorage.removeItem("xyena-delivery-demo-ui-token");
+            byId("appRoot").classList.remove("access-panel-connected");
+            byId("accessPanel").style.display = "flex";
+            const msg = byId("formMessage");
+            msg.textContent = err.message;
+            msg.classList.remove("hidden");
+        }
+    }
+
+    // Handle Authentication Form
+    byId("accessForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        loadDashboardData(byId("token").value);
+    });
+
+    byId("disconnectButton").addEventListener("click", () => {
+        sessionStorage.removeItem("xyena-delivery-demo-ui-token");
+        window.location.reload();
+    });
+
+    const savedToken = sessionStorage.getItem("xyena-delivery-demo-ui-token");
+    if (savedToken) {
+        loadDashboardData(savedToken);
+        
+        // Connect to SSE stream
+        const eventSource = new EventSource("/api/v1/events/stream");
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("SSE Live Event:", data);
+            
+            // Highlight live status pulse
+            const liveText = byId("liveStatus");
+            liveText.textContent = "Live DB sync: Updated just now";
+            liveText.classList.add("text-error");
+            setTimeout(() => {
+                liveText.textContent = "Live DB sync: Active";
+                liveText.classList.remove("text-error");
+            }, 3000);
+            
+            // Reload dashboard data
+            loadDashboardData(savedToken);
+        };
+    }
+</script>
+</body>
+</html>

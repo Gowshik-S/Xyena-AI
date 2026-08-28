@@ -1,0 +1,42 @@
+name: xyena-delivery-mcp-demo
+
+x-delivery-demo: &delivery-demo
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    DELIVERY_DEMO_DATABASE_URL: sqlite+aiosqlite:////data/delivery-demo.db
+  networks:
+    - xyena-backend
+
+services:
+  delivery-demo:
+    <<: *delivery-demo
+    restart: unless-stopped
+    ports:
+      - "8095:8095"
+    volumes:
+      - delivery-demo-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *delivery-demo
+    profiles: ["registration"]
+    command: ["delivery-mcp-register"]
+    depends_on:
+      delivery-demo:
+        condition: service_healthy
+
+networks:
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  delivery-demo-data:
