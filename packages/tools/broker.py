@@ -384,7 +384,8 @@ class ToolBroker:
                     auth_type=server.auth_type,
                     secret_ref=server.secret_ref,
                     timeout_seconds=float(policy.timeout_seconds),
-                    max_retries=server.max_retries,
+                    # A timed-out side effect is UNKNOWN, never a safe automatic retry.
+                    max_retries=0 if policy.side_effects else server.max_retries,
                     allowed_egress_hosts=tuple(server.allowed_egress_hosts),
                 )
                 runtime_envelope = {
@@ -399,6 +400,10 @@ class ToolBroker:
                     "canonical_name": call.canonical_name,
                     "purpose": call.purpose,
                     "request_hash": call.request_hash,
+                    "guardian_decision_id": str(call.guardian_decision_id)
+                    if call.guardian_decision_id else None,
+                    "authorization_id": str(call.authorization_id)
+                    if call.authorization_id else None,
                 }
                 projection = await self.remote_client.call_tool(
                     remote_config,
@@ -416,20 +421,33 @@ class ToolBroker:
             call.status = ToolCallStatus.SUCCEEDED.value
             result = await self._store_result(db, call, "SUCCEEDED", projection, policy)
         except Exception as exc:
-            attempt.status = "FAILED"
+            outcome_unknown = handler is None and policy.side_effects
+            attempt.status = "UNKNOWN" if outcome_unknown else "FAILED"
             attempt.completed_at = datetime.now(UTC)
             attempt.error_class = type(exc).__name__
             attempt.error_detail = str(exc)[:4000]
-            call.status = ToolCallStatus.FAILED.value
-            code = exc.code if isinstance(exc, ToolBrokerError) else "TOOL_EXECUTION_FAILED"
+            call.status = (
+                ToolCallStatus.UNKNOWN.value if outcome_unknown else ToolCallStatus.FAILED.value
+            )
+            code = (
+                "TOOL_OUTCOME_UNKNOWN"
+                if outcome_unknown
+                else exc.code if isinstance(exc, ToolBrokerError) else "TOOL_EXECUTION_FAILED"
+            )
             result = await self._store_result(
                 db,
                 call,
-                "FAILED",
+                "UNKNOWN" if outcome_unknown else "FAILED",
                 None,
                 policy,
                 error_code=code,
-                error_message="The tool could not be completed.",
+                error_message=(
+                    "The remote side effect may have occurred; reconcile before any retry."
+                    if outcome_unknown
+                    else "The tool could not be completed."
+                ),
+                flags=["reconciliation_required", "no_blind_retry"]
+                if outcome_unknown else None,
             )
 
         await enqueue_outbox(

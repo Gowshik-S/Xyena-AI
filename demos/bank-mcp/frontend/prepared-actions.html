@@ -5,7 +5,7 @@
   <div class="app-shell"><aside class="sidebar">
     <a class="brand" href="/"><span class="brand-mark">X</span><span><strong>XYENA Bank</strong><small>Operations console</small></span></a>
     <nav aria-label="Bank operations"><a class="nav-link" href="/">Overview</a><a class="nav-link" href="/accounts">Accounts</a><a class="nav-link" href="/transactions">Transactions</a><a class="nav-link" href="/beneficiaries">Beneficiaries</a><a class="nav-link active" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a></nav>
-    <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Preparation only</strong><p>Actions expire after 15 minutes and cannot execute in this service.</p></div>
+    <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Exact-action control</strong><p>Actions expire after 15 minutes and execute only after Guardian approves the exact hash.</p></div>
   </aside><main>
     <header class="topbar"><div><p class="kicker">Canonical proposals</p><h1>Prepared actions</h1><p class="page-intro">Inspect idempotent action proposals and the hashes Guardian would govern.</p></div><button class="connection-state" id="disconnectButton" data-state="locked" disabled><span></span><span id="connectionLabel">Dashboard locked</span></button></header>
     <section class="execution-boundary"><div><span>Execution boundary</span><strong>No payment operation exists in this application.</strong></div><p>The only state change available is creation of an expiring proposal with an exact canonical hash.</p></section>

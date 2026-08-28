@@ -1,5 +1,9 @@
 # Bank and Account Aggregator External Demo Application
 
+> Implementation status: the synthetic Bank/AA service, all 19 MCP tools, Guardian-only payment
+> operations and multi-page frontend are implemented in [`demos/bank-mcp`](../../demos/bank-mcp/README.md).
+> It remains a non-production demonstration and has no regulated or live financial connection.
+
 ## 1. Application identity
 
 ```text

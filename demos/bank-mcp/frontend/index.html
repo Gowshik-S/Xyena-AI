@@ -13,9 +13,9 @@
       <nav aria-label="Bank operations">
         <a class="nav-link active" href="/">Overview</a><a class="nav-link" href="/accounts">Accounts</a>
         <a class="nav-link" href="/transactions">Transactions</a><a class="nav-link" href="/beneficiaries">Beneficiaries</a>
-        <a class="nav-link" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a>
+        <a class="nav-link" href="/account-aggregator">Account Aggregator</a><a class="nav-link" href="/payment-operations">Payment operations</a><a class="nav-link" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a>
       </nav>
-      <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Execution disabled</strong><p>This service prepares action hashes. It cannot move funds or change balances.</p></div>
+      <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Guardian execution boundary</strong><p>Synthetic balances change only through signed, approved MCP calls.</p></div>
     </aside>
     <main>
       <header class="topbar"><div><p class="kicker">Banking evidence and controls</p><h1>Operations overview</h1></div><button class="connection-state" id="disconnectButton" data-state="locked" disabled><span></span><span id="connectionLabel">Dashboard locked</span></button></header>
@@ -29,7 +29,7 @@
         <article class="metric-card"><span class="metric-label">Available funds</span><strong id="availableFunds">—</strong><small>Across scoped synthetic accounts</small></article>
         <article class="metric-card"><span class="metric-label">Active accounts</span><strong id="accountCount">—</strong><small>Opaque tokens; numbers remain masked</small></article>
         <article class="metric-card"><span class="metric-label">Verified beneficiaries</span><strong id="verifiedCount">—</strong><small id="beneficiarySubtext">Evidence not loaded</small></article>
-        <article class="metric-card"><span class="metric-label">Prepared actions</span><strong id="actionCount">—</strong><small>Preparation only; never executed here</small></article>
+        <article class="metric-card"><span class="metric-label">Prepared actions</span><strong id="actionCount">—</strong><small>Exact hashes awaiting governance</small></article>
       </section>
 
       <section class="content-grid overview-grid">
@@ -39,7 +39,7 @@
         </article>
         <article class="panel">
           <div class="panel-header"><div><p class="section-label">Governance</p><h2>Control posture</h2></div></div>
-          <dl class="control-list"><div><dt>Payment execution</dt><dd class="status status-safe">Disabled</dd></div><div><dt>Runtime scope</dt><dd>HMAC signed</dd></div><div><dt>Tool governance</dt><dd>Guardian routed</dd></div><div><dt>Audit events</dt><dd id="auditCount">—</dd></div><div><dt>Data class</dt><dd>Synthetic only</dd></div></dl>
+          <dl class="control-list"><div><dt>Payment execution</dt><dd class="status status-review">Guardian only</dd></div><div><dt>Runtime scope</dt><dd>HMAC signed</dd></div><div><dt>Tool governance</dt><dd>Guardian routed</dd></div><div><dt>Audit events</dt><dd id="auditCount">—</dd></div><div><dt>Data class</dt><dd>Synthetic only</dd></div></dl>
         </article>
         <article class="panel panel-full">
           <div class="panel-header"><div><p class="section-label">Operations directory</p><h2>Review by responsibility</h2></div></div>

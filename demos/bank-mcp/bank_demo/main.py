@@ -13,7 +13,11 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from .database import close_database, initialize_database, session
 from .mcp import mcp, mcp_app
-from .models import Account, AuditEvent, Beneficiary, PreparedTransfer, Transaction
+from .models import (
+    AAConsent, Account, AccountHold, AuditEvent, Beneficiary,
+    FinancialInformationRequest, PreparedReversal, PreparedTransfer,
+    Transaction, TransferExecution,
+)
 from .seed import (
     DEMO_ORGANIZATION_ID,
     DEMO_TENANT_ID,
@@ -34,6 +38,8 @@ FRONTEND_PAGES = {
     "/transactions": "transactions.html",
     "/beneficiaries": "beneficiaries.html",
     "/prepared-actions": "prepared-actions.html",
+    "/account-aggregator": "account-aggregator.html",
+    "/payment-operations": "payment-operations.html",
     "/mcp-connection": "mcp-connection.html",
 }
 
@@ -87,11 +93,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="XYENA Synthetic Bank MCP Demo",
-        summary="Synthetic bank evidence and transfer preparation over MCP v2",
+        title="XYENA Bank and Account Aggregator",
+        summary="Synthetic bank evidence, consented AA data and Guardian-authorized payments",
         description=(
-            "An isolated, non-production demonstration service. It cannot execute payments, "
-            "modify beneficiaries, place holds, or connect to a real financial institution."
+            "An isolated, non-production service. It executes only synthetic balance changes "
+            "after a signed Guardian-routed MCP call; no real financial institution is connected."
         ),
         version="0.1.0",
         openapi_version="3.1.0",
@@ -152,10 +158,22 @@ def create_app() -> FastAPI:
                     .limit(12)
                 )
             ).all()
+            consents = (await db.scalars(select(AAConsent).order_by(AAConsent.created_at.desc()))).all()
+            fi_requests = (await db.scalars(select(FinancialInformationRequest)
+                                            .order_by(FinancialInformationRequest.created_at.desc())
+                                            .limit(12))).all()
+            executions = (await db.scalars(select(TransferExecution)
+                                           .order_by(TransferExecution.created_at.desc())
+                                           .limit(12))).all()
+            holds = (await db.scalars(select(AccountHold)
+                                      .order_by(AccountHold.created_at.desc()).limit(12))).all()
+            reversals = (await db.scalars(select(PreparedReversal)
+                                          .order_by(PreparedReversal.created_at.desc()).limit(12))).all()
             audit_count = await db.scalar(select(func.count()).select_from(AuditEvent))
         return {
             "environment": "SYNTHETIC_NON_PRODUCTION",
-            "execution_available": False,
+            "execution_available": True,
+            "execution_boundary": "GUARDIAN_AUTHORIZED_MCP_ONLY",
             "scope": {
                 "tenant_id": DEMO_TENANT_ID,
                 "organization_id": DEMO_ORGANIZATION_ID,
@@ -164,7 +182,7 @@ def create_app() -> FastAPI:
             "mcp": {
                 "transport": "STREAMABLE_HTTP",
                 "endpoint": "/mcp",
-                "tool_count": 7,
+                "tool_count": 19,
                 "runtime_scope": "HMAC_SIGNED_BY_XYENA_GATEWAY",
             },
             "accounts": [
@@ -208,6 +226,35 @@ def create_app() -> FastAPI:
                     "canonical_action_hash": value.canonical_action_hash,
                 }
                 for value in preparations
+            ],
+            "aa_consents": [
+                {"consent_id": value.consent_id, "purpose": value.purpose,
+                 "status": value.status, "information_types": value.information_types,
+                 "account_tokens": value.account_tokens, "valid_until": value.valid_until.isoformat()}
+                for value in consents
+            ],
+            "fi_requests": [
+                {"request_id": value.request_id, "consent_id": value.consent_id,
+                 "information_type": value.information_type, "account_token": value.account_token,
+                 "status": value.status, "evidence_receipt_id": value.evidence_receipt_id}
+                for value in fi_requests
+            ],
+            "transfer_executions": [
+                {"execution_id": value.execution_id, "proposed_action_id": value.proposed_action_id,
+                 "amount": str(value.amount), "currency": value.currency,
+                 "bank_reference": value.bank_reference, "status": value.status}
+                for value in executions
+            ],
+            "holds": [
+                {"hold_id": value.hold_id, "account_token": value.account_token,
+                 "amount": str(value.amount), "currency": value.currency, "status": value.status}
+                for value in holds
+            ],
+            "reversals": [
+                {"reversal_id": value.reversal_id, "transfer_execution_id": value.transfer_execution_id,
+                 "amount": str(value.amount), "currency": value.currency,
+                 "status": value.status, "bank_reference": value.bank_reference}
+                for value in reversals
             ],
             "audit_event_count": audit_count or 0,
         }

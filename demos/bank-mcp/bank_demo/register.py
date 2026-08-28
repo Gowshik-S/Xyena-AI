@@ -11,7 +11,12 @@ load_dotenv()
 
 
 POLICIES: dict[str, dict[str, Any]] = {
+    "bank.aa.create_consent": {"risk_class": "MUTATE", "side_effects": True},
+    "bank.aa.get_consent": {"risk_class": "SENSITIVE_READ", "side_effects": False},
+    "bank.aa.revoke_consent": {"risk_class": "PRIVILEGED", "side_effects": True},
+    "bank.aa.fetch_information": {"risk_class": "SENSITIVE_READ", "side_effects": False},
     "bank.accounts.list": {"risk_class": "SENSITIVE_READ", "side_effects": False},
+    "bank.accounts.get": {"risk_class": "SENSITIVE_READ", "side_effects": False},
     "bank.accounts.get_balance": {
         "risk_class": "SENSITIVE_READ",
         "side_effects": False,
@@ -26,10 +31,17 @@ POLICIES: dict[str, dict[str, Any]] = {
     },
     "bank.limits.get": {"risk_class": "SENSITIVE_READ", "side_effects": False},
     "bank.transfers.prepare": {"risk_class": "MUTATE", "side_effects": True},
+    "bank.transfers.execute": {"risk_class": "PRIVILEGED", "side_effects": True, "approval_mode": "ALWAYS"},
     "bank.transfers.get_status": {
         "risk_class": "SENSITIVE_READ",
         "side_effects": False,
     },
+    "bank.beneficiaries.prepare_change": {"risk_class": "MUTATE", "side_effects": True},
+    "bank.beneficiaries.execute_change": {"risk_class": "PRIVILEGED", "side_effects": True, "approval_mode": "ALWAYS"},
+    "bank.reversals.prepare": {"risk_class": "MUTATE", "side_effects": True},
+    "bank.reversals.execute": {"risk_class": "PRIVILEGED", "side_effects": True, "approval_mode": "ALWAYS"},
+    "bank.holds.place": {"risk_class": "PRIVILEGED", "side_effects": True, "approval_mode": "ALWAYS"},
+    "bank.holds.release": {"risk_class": "PRIVILEGED", "side_effects": True, "approval_mode": "ALWAYS"},
 }
 
 
@@ -74,7 +86,7 @@ async def register() -> None:
                 json={
                     "label": "bank",
                     "description": (
-                        "Isolated XYENA synthetic bank evidence and transfer-preparation demo"
+                        "XYENA synthetic bank, payment operations and Account Aggregator"
                     ),
                     "transport": "STREAMABLE_HTTP",
                     "endpoint": public_url,
@@ -83,7 +95,7 @@ async def register() -> None:
                     "trust_tier": "UNREVIEWED",
                     "allowed_egress_hosts": [hostname],
                     "timeout_seconds": 30,
-                    "max_retries": 1,
+                    "max_retries": 0,
                 },
             )
             response.raise_for_status()
@@ -136,7 +148,7 @@ async def register() -> None:
                     "required_purposes": [],
                     "required_consents": [],
                     "allowed_agents": ["xyena-supervisor"],
-                    "approval_mode": "POLICY",
+                    "approval_mode": policy.get("approval_mode", "POLICY"),
                     "side_effects": policy["side_effects"],
                     "idempotent": True,
                     "parallel_allowed": False,

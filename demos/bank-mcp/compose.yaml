@@ -7,7 +7,7 @@ x-bank-demo: &bank-demo
   env_file:
     - .env
   environment:
-    BANK_DEMO_DATABASE_URL: sqlite+aiosqlite:////data/bank-demo.db
+    BANK_DEMO_DATABASE_URL: postgresql+asyncpg://bank:${BANK_DEMO_DB_PASSWORD}@postgres:5432/bank_demo
   networks:
     - xyena-backend
 
@@ -17,8 +17,9 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"
-    volumes:
-      - bank-demo-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/ready')"]
       interval: 10s
@@ -32,6 +33,23 @@ services:
     depends_on:
       bank-demo:
         condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bank_demo
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: ${BANK_DEMO_DB_PASSWORD}
+    volumes:
+      - bank-demo-data:/var/lib/postgresql/data
+    networks:
+      - xyena-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank -d bank_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
 networks:
   xyena-backend:

@@ -1,78 +1,68 @@
-# XYENA synthetic bank MCP demo
+# XYENA Bank and Account Aggregator
 
-This folder is an isolated, database-backed demonstration bank connected to the Xyena MCP
-Gateway. Every record is synthetic. The service does **not** connect to a real bank, Account
-Aggregator, payment rail, credential, account, beneficiary, or source of funds.
+This independent FastAPI/PostgreSQL-compatible demo supplies a complete synthetic bank, payment
+operations and Account Aggregator boundary to Xyena. It never connects to a real bank, AA,
+beneficiary or payment rail.
 
-Its financial boundary is deliberate: tools can read synthetic evidence and prepare a canonical
-transfer proposal, but no tool can execute a payment, alter a beneficiary, place a hold, reverse a
-transaction, or change an account balance.
+## Ready surfaces
 
-## What is included
+| Surface | Purpose |
+|---|---|
+| `/` | Bank operations summary |
+| `/accounts` | Tokenized accounts and balances |
+| `/transactions` | Consented transaction evidence |
+| `/beneficiaries` | Masked beneficiary verification |
+| `/account-aggregator` | Consent and FI-request register |
+| `/payment-operations` | Settlements, references and holds |
+| `/prepared-actions` | Canonical exact-action proposals |
+| `/mcp-connection` | 19-tool reviewed MCP catalog |
+| `/docs` | OpenAPI 3.1 contract |
+| `/mcp` | Bearer-protected MCP v2 endpoint |
 
-- FastAPI application and OpenAPI 3.1 description at `/docs` and `/openapi.json`;
-- MCP v2 Streamable HTTP endpoint at `/mcp`;
-- bearer authentication for MCP and separate token authentication for the dashboard API;
-- HMAC-signed Xyena runtime scope on every tool call;
-- tenant, user, consent, purpose, account, and beneficiary enforcement;
-- SQLite persistence with deterministic synthetic seed data;
-- an audit event for each successful scoped operation;
-- an idempotent, expiring transfer-preparation record and canonical action hash;
-- a registration utility that performs discovery, reviewed activation, and policy activation through
-  the Xyena control API;
-- a responsive light-theme operations frontend at `/` that visibly labels all data as synthetic.
+The light operations interface uses paper white, navy, ledger green and restrained amber. It has
+no purple, neon, gradient or generic AI styling. Browser APIs are read-only; payment execution is
+not exposed as a browser control.
 
-The frontend source is kept separately in `frontend/`. It uses a restrained financial-operations
-palette (paper white, ink, navy, green, and amber), system typography, and no neon, purple, gradient,
-or generated-art styling. It has no Node.js or external browser dependency and is served by FastAPI.
-
-Each operational responsibility has its own page and URL:
-
-- `/` — operations overview;
-- `/accounts` — tokenized accounts, balances, and preparation limits;
-- `/transactions` — consented synthetic transaction evidence;
-- `/beneficiaries` — masked counterparty verification;
-- `/prepared-actions` — canonical proposals and action hashes;
-- `/mcp-connection` — reviewed tools, transport, and signed runtime scope.
-
-Dashboard access is retained only in browser `sessionStorage`, so navigation between pages does not
-require repeated token entry and closing the tab clears the browser-held credential.
-
-## Architecture and trust path
+## Security and state model
 
 ```text
-Xyena supervisor
-  -> Xyena MCP broker
-     -> registered tool policy + Guardian evaluation
-        -> bearer-authenticated MCP v2 request
-           -> HMAC-signed tenant/user/session/run/call/purpose scope
-              -> synthetic bank consent and resource checks
-                 -> evidence result or prepared-action hash
+Xyena agent → MCP broker → Guardian decision + single-use consume
+                              ↓
+                  HMAC-signed remote runtime envelope
+                              ↓
+Bank rechecks action hash, expiry, beneficiary, balance and limits
+                              ↓
+account + transaction + execution + audit + outbox commit together
 ```
 
-The bearer token authenticates the gateway workload. The signed MCP request `_meta` binds the
-effective tenant, organization, user, session, run, call, agent, tool name, purpose, and canonical
-request hash. The bank demo rejects direct MCP tool calls that do not have a valid signature.
+AA consent is separate from payment authority. Consents are account-, purpose-, information-type-
+and time-scoped and revocable. FI fetches are idempotent and return evidence receipts. Side-effect
+tools uniquely persist the Guardian call ID and reject action-hash or parameter drift. Unknown
+results must be reconciled and are never blindly retried.
 
-## Tool catalog
+Transfers produce random-looking 10-character synthetic references. Holds adjust available rather
+than current balance. Reversals require reviewer approval plus Guardian and create a compensating
+credit transaction. PostgreSQL is supported with `asyncpg`; SQLite remains the local default.
 
-| Canonical Xyena name | Demo MCP name | Risk | Capability |
-|---|---|---|---|
-| `bank.accounts.list` | `accounts.list` | `SENSITIVE_READ` | Scoped tokenized account list |
-| `bank.accounts.get_balance` | `accounts.get_balance` | `SENSITIVE_READ` | Synthetic balance evidence |
-| `bank.transactions.list` | `transactions.list` | `SENSITIVE_READ` | Maximum 90-day transaction window |
-| `bank.beneficiaries.verify` | `beneficiaries.verify` | `SENSITIVE_READ` | Synthetic verification evidence |
-| `bank.limits.get` | `limits.get` | `SENSITIVE_READ` | Limits and disabled-execution signal |
-| `bank.transfers.prepare` | `transfers.prepare` | `MUTATE` | Idempotent proposal only |
-| `bank.transfers.get_status` | `transfers.get_status` | `SENSITIVE_READ` | Prepared proposal status |
+## MCP catalog
 
-All seven tools use `approval_mode=POLICY`, are restricted to `xyena-supervisor`, and pass through
-Guardian because no bank capability is classified as an ordinary public read.
+```text
+bank.aa.create_consent              bank.aa.get_consent
+bank.aa.revoke_consent              bank.aa.fetch_information
+bank.accounts.list                  bank.accounts.get
+bank.accounts.get_balance           bank.transactions.list
+bank.beneficiaries.verify           bank.limits.get
+bank.transfers.prepare              bank.transfers.execute
+bank.transfers.get_status           bank.beneficiaries.prepare_change
+bank.beneficiaries.execute_change   bank.reversals.prepare
+bank.reversals.execute              bank.holds.place
+bank.holds.release
+```
 
-## Synthetic scope and fixtures
+Privileged execution tools use `approval_mode=ALWAYS`, are restricted to `xyena-supervisor`, and
+can run only after Guardian admits the exact central-broker call.
 
-The seed data is intentionally fixed so the Xyena session used for a demo can be created in the
-same scope:
+## Stable synthetic fixture
 
 ```text
 tenant_id       00000000-0000-4000-8000-000000000101
@@ -80,97 +70,22 @@ organization_id 00000000-0000-4000-8000-000000000301
 user_id         00000000-0000-4000-8000-000000000201
 account         acct_demo_operating
 beneficiary     ben_demo_verified
-consent         consent_demo_active
+aa consent      aac_demo_active
 currency/rail   INR / DEMO_BANK_RAIL
 ```
 
-Calls for another tenant or user cannot see the seeded accounts or prepared actions.
+## Run and register
 
-## Local setup
+From this directory, copy `.env.example` to `.env`, use long random secrets, install with
+`python -m pip install -e .`, then run `bank-mcp-demo`. Register the exact catalog with
+`bank-mcp-register`. Registration fails on missing or unexpected tools and marks execution tools
+as always-approval privileged actions.
 
-Use Python 3.12. From this folder:
+## Implemented boundary
 
-```powershell
-Copy-Item .env.example .env
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
-bank-mcp-demo
-```
+Implemented: persistent synthetic accounts, transactions, beneficiaries, AA consents, FI requests,
+transfer prepare/execute/status, beneficiary changes, holds, reviewer-approved reversals, exact
+hashes, replay/idempotency controls, audit/outbox records, OpenAPI, MCP and multi-page UI.
 
-Set long random values for `BANK_DEMO_MCP_TOKEN` and `BANK_DEMO_UI_TOKEN` before starting. Then open
-`http://localhost:8090`. The UI token only unlocks the demonstration dashboard API; it cannot call
-MCP tools.
-
-## Connect it to Xyena
-
-The root Xyena MCP service must receive these environment values:
-
-```text
-XYENA_MCP_ADMIN_TOKEN=<separate high-entropy review credential>
-BANK_DEMO_MCP_TOKEN=<exact same MCP token configured in this demo>
-```
-
-The demo `.env` also needs the Xyena control-plane values shown in `.env.example`. For a host-based
-run, use `BANK_DEMO_PUBLIC_MCP_URL=http://host.docker.internal:8090/mcp` when Xyena runs in Docker.
-For the supplied Docker Compose connection, the value is `http://bank-demo:8090/mcp`.
-
-With Xyena core and the bank demo running, activate the connection:
-
-```powershell
-bank-mcp-register
-```
-
-The utility is intentionally explicit. It:
-
-1. registers or reuses the tenant-local `bank` server;
-2. invokes MCP discovery using the service credential;
-3. activates the server as `REVIEWED_INTERNAL` using the separate admin credential;
-4. verifies that the discovered catalog exactly matches the seven expected tools;
-5. activates each immutable tool schema version with its reviewed Guardian policy.
-
-It will stop if a tool is missing or an unexpected tool appears. It never silently trusts schema
-drift.
-
-## Docker Compose
-
-The supplied compose file joins the existing `xyena-core_backend` network created by the root
-Compose stack:
-
-```powershell
-docker compose up --build -d bank-demo
-docker compose --profile registration run --rm register
-```
-
-For isolated UI-only use, either create a network with that name first or remove the external
-network stanza locally. Xyena registration requires the shared network.
-
-## Development connection check
-
-After the server is running, `python -m bank_demo.client` lists the remote tools and invokes
-`accounts.list`. This utility locally constructs a gateway-style signed scope and therefore uses
-the MCP secret. It is for development diagnostics only; production callers must always use the
-Xyena MCP broker so registry policy, Guardian authorization, audit, result limits, and idempotency
-controls cannot be bypassed.
-
-## Implemented versus intentionally absent
-
-Implemented and ready:
-
-- synthetic bank web/API service;
-- MCP connection and discovery;
-- reviewed Xyena registry activation;
-- Guardian-routed policies;
-- signed per-user runtime context;
-- consented evidence reads;
-- beneficiary and limit checks;
-- transfer preparation/status only;
-- synthetic audit trail and dashboard.
-
-Intentionally absent:
-
-- real bank or Account Aggregator integration;
-- payment execution or balance mutation;
-- beneficiary creation/update;
-- holds, releases, reversals, mandates, or credentials;
-- GST, lender, dealer, wallet, portfolio, DeFi, or any other demo application.
+Not included: real credentials, money, regulated AA connectivity, core-banking integration, GST,
+lending, brokerage, wallet, portfolio or DeFi behavior.

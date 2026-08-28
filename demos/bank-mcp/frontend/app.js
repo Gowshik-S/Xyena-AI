@@ -1,11 +1,23 @@
 const tools = [
+  ["bank.aa.create_consent", "Mutation"],
+  ["bank.aa.get_consent", "Sensitive read"],
+  ["bank.aa.revoke_consent", "Privileged mutation"],
+  ["bank.aa.fetch_information", "Consented read"],
   ["bank.accounts.list", "Sensitive read"],
+  ["bank.accounts.get", "Sensitive read"],
   ["bank.accounts.get_balance", "Sensitive read"],
   ["bank.transactions.list", "Sensitive read"],
   ["bank.beneficiaries.verify", "Sensitive read"],
   ["bank.limits.get", "Sensitive read"],
-  ["bank.transfers.prepare", "Mutation · preparation only"],
+  ["bank.transfers.prepare", "Mutation · prepare"],
+  ["bank.transfers.execute", "Privileged · Guardian approval"],
   ["bank.transfers.get_status", "Sensitive read"],
+  ["bank.beneficiaries.prepare_change", "Mutation · prepare"],
+  ["bank.beneficiaries.execute_change", "Privileged · Guardian approval"],
+  ["bank.reversals.prepare", "Mutation · prepare"],
+  ["bank.reversals.execute", "Privileged · dual approval"],
+  ["bank.holds.place", "Privileged · Guardian approval"],
+  ["bank.holds.release", "Privileged · Guardian approval"],
 ];
 
 const byId = (id) => document.getElementById(id);
@@ -51,6 +63,10 @@ function renderData(data) {
   setText("actionCount", data.prepared_actions.length);
   setText("readyActionCount", readyActions);
   setText("auditCount", data.audit_event_count);
+  setText("consentCount", data.aa_consents.length);
+  setText("fiRequestCount", data.fi_requests.length);
+  setText("executionCount", data.transfer_executions.length);
+  setText("holdCount", data.holds.filter((item) => item.status === "ACTIVE").length);
   setText("creditTotal", money(credits));
   setText("debitTotal", money(debits));
   setText("transactionCount", data.transactions.length);
@@ -77,6 +93,26 @@ function renderData(data) {
   if (actionRows) actionRows.innerHTML = data.prepared_actions.length ? data.prepared_actions.map((action) => `
     <tr><td><strong>${escapeHtml(action.proposed_action_id)}</strong></td><td><code title="${escapeHtml(action.canonical_action_hash)}">${escapeHtml(action.canonical_action_hash)}</code></td><td class="align-right"><strong>${money(action.amount, action.currency)}</strong></td><td><span class="status status-review">${escapeHtml(action.status)}</span></td></tr>
   `).join("") : '<tr><td class="empty" colspan="4">No action has been prepared through MCP.</td></tr>';
+
+  const consentRows = byId("consentRows");
+  if (consentRows) consentRows.innerHTML = data.aa_consents.length ? data.aa_consents.map((item) => `
+    <tr><td><strong>${escapeHtml(item.consent_id)}</strong><small>${escapeHtml(item.purpose)}</small></td><td>${item.account_tokens.length}</td><td>${item.information_types.map(escapeHtml).join(", ")}</td><td><span class="status ${item.status === "ACTIVE" ? "status-safe" : "status-review"}">${escapeHtml(item.status)}</span></td><td>${escapeHtml(item.valid_until.slice(0, 10))}</td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No Account Aggregator consent exists.</td></tr>';
+
+  const fiRows = byId("fiRows");
+  if (fiRows) fiRows.innerHTML = data.fi_requests.length ? data.fi_requests.map((item) => `
+    <tr><td><code>${escapeHtml(item.request_id)}</code></td><td>${escapeHtml(item.information_type)}</td><td><code>${escapeHtml(item.account_token)}</code></td><td><span class="status status-safe">${escapeHtml(item.status)}</span></td><td><code>${escapeHtml(item.evidence_receipt_id || "—")}</code></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No FI request has been made through MCP.</td></tr>';
+
+  const executionRows = byId("executionRows");
+  if (executionRows) executionRows.innerHTML = data.transfer_executions.length ? data.transfer_executions.map((item) => `
+    <tr><td><code>${escapeHtml(item.execution_id)}</code></td><td><code>${escapeHtml(item.bank_reference || "—")}</code></td><td class="align-right"><strong>${money(item.amount, item.currency)}</strong></td><td><span class="status status-safe">${escapeHtml(item.status)}</span></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="4">No Guardian-authorized transfer has settled.</td></tr>';
+
+  const holdRows = byId("holdRows");
+  if (holdRows) holdRows.innerHTML = data.holds.length ? data.holds.map((item) => `
+    <tr><td><code>${escapeHtml(item.hold_id)}</code></td><td><code>${escapeHtml(item.account_token)}</code></td><td class="align-right">${money(item.amount, item.currency)}</td><td><span class="status ${item.status === "ACTIVE" ? "status-review" : "status-safe"}">${escapeHtml(item.status)}</span></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="4">No holds are recorded.</td></tr>';
 
   renderTransactions("overviewTransactions", data.transactions, 5);
 }

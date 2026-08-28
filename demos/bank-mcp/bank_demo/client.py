@@ -36,6 +36,9 @@ def signed_meta(secret: str, canonical_name: str) -> dict[str, object]:
         "canonical_name": canonical_name,
         "purpose": "synthetic bank MCP connection check",
         "request_hash": hashlib.sha256(canonical_name.encode()).hexdigest(),
+        # Development-only stand-ins. Production metadata is emitted only after Guardian consume.
+        "guardian_decision_id": str(uuid4()),
+        "authorization_id": str(uuid4()),
     }
     canonical = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
     signature = hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()

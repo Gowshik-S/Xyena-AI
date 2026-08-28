@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID, uuid5
 
 from .database import session
-from .models import Account, Beneficiary, Consent, Transaction
+from .models import AAConsent, Account, Beneficiary, Consent, Transaction
 
 DEMO_TENANT_ID = "00000000-0000-4000-8000-000000000101"
 DEMO_ORGANIZATION_ID = "00000000-0000-4000-8000-000000000301"
@@ -16,6 +16,20 @@ async def seed_demo_data() -> None:
             consent = await db.get(Consent, "consent_demo_active")
             if consent is not None:
                 consent.valid_until = datetime.now(UTC) + timedelta(days=30)
+            aa_consent = await db.get(AAConsent, "aac_demo_active")
+            if aa_consent is not None:
+                aa_consent.valid_until = datetime.now(UTC) + timedelta(days=30)
+            else:
+                db.add(AAConsent(
+                    consent_id="aac_demo_active", tenant_id=DEMO_TENANT_ID,
+                    user_id=DEMO_USER_ID, purpose="synthetic financing assessment",
+                    account_tokens=["acct_demo_operating", "acct_demo_reserve"],
+                    information_types=["ACCOUNT", "BALANCE", "TRANSACTIONS"],
+                    idempotency_key="seed-aa-consent-active",
+                    request_hash="seed-aa-consent-active",
+                    status="ACTIVE", valid_from=datetime.now(UTC),
+                    valid_until=datetime.now(UTC) + timedelta(days=30), version=1,
+                ))
             return
         db.add_all(
             [
@@ -74,6 +88,20 @@ async def seed_demo_data() -> None:
                     purpose_prefix="",
                     status="ACTIVE",
                     valid_until=datetime.now(UTC) + timedelta(days=30),
+                ),
+                AAConsent(
+                    consent_id="aac_demo_active",
+                    tenant_id=DEMO_TENANT_ID,
+                    user_id=DEMO_USER_ID,
+                    purpose="synthetic financing assessment",
+                    account_tokens=["acct_demo_operating", "acct_demo_reserve"],
+                    information_types=["ACCOUNT", "BALANCE", "TRANSACTIONS"],
+                    idempotency_key="seed-aa-consent-active",
+                    request_hash="seed-aa-consent-active",
+                    status="ACTIVE",
+                    valid_from=datetime.now(UTC),
+                    valid_until=datetime.now(UTC) + timedelta(days=30),
+                    version=1,
                 ),
             ]
         )
