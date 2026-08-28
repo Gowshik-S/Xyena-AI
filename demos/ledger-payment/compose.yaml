@@ -1,0 +1,53 @@
+name: xyena-ledger-payment-demo
+
+x-ledger: &ledger
+  build: .
+  env_file: .env
+  environment:
+    LEDGER_DEMO_DATABASE_URL: postgresql+asyncpg://ledger:${LEDGER_DEMO_DB_PASSWORD}@postgres:5432/ledger_demo
+  networks: [xyena-backend]
+
+services:
+  ledger-payment:
+    <<: *ledger
+    restart: unless-stopped
+    ports: ["8095:8095"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *ledger
+    profiles: ["registration"]
+    command: ["ledger-payment-register"]
+    depends_on:
+      ledger-payment:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ledger_demo
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ${LEDGER_DEMO_DB_PASSWORD}
+    volumes: ["ledger-data:/var/lib/postgresql/data"]
+    networks: [xyena-backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger -d ledger_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+networks:
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  ledger-data:

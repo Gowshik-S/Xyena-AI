@@ -1,0 +1,14 @@
+{
+  "scenario_id": "xyena-financing-e2e-v1",
+  "tenant_id": "00000000-0000-4000-8000-000000000101",
+  "organization_id": "00000000-0000-4000-8000-000000000301",
+  "user_id": "00000000-0000-4000-8000-000000000201",
+  "financing_case_id": "case_demo_e2e_001",
+  "source_account_token": "acct_demo_operating",
+  "beneficiary_token": "ben_demo_verified",
+  "amount": "125000.00",
+  "currency": "INR",
+  "rail": "DEMO_BANK_RAIL",
+  "expected_terminal_state": "RECONCILED",
+  "data_class": "SYNTHETIC_NON_PRODUCTION"
+}

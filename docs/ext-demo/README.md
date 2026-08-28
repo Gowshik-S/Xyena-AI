@@ -23,9 +23,9 @@ The applications use synthetic demo identities and transactions, but their workf
 | GST and e-Invoice | `gst.demo.xyena.ai` | [GST_EINVOICE_APP.md](./GST_EINVOICE_APP.md) | GST/Supply MCP |
 | Buyer and ERP | `erp.demo.xyena.ai` | [BUYER_ERP_APP.md](./BUYER_ERP_APP.md) | ERP/Supply MCP |
 | Delivery and Fulfilment | `delivery.demo.xyena.ai` | [DELIVERY_APP.md](./DELIVERY_APP.md) | Delivery/Supply MCP |
-| Bank and Account Aggregator | `bank.demo.xyena.ai` | [BANK_AA_APP.md](./BANK_AA_APP.md) | Bank MCP |
+| Bank and Account Aggregator | `bank.demo.xyena.ai` | [BANK_AA_APP.md](./BANK_AA_APP.md) · [implementation](../../demos/bank-mcp/README.md) | Bank MCP |
 | Funder Marketplace | `funder.demo.xyena.ai` | [FUNDER_MARKETPLACE_APP.md](./FUNDER_MARKETPLACE_APP.md) | Funder/Supply MCP |
-| Ledger and Payment Operations | `ledger.demo.xyena.ai` | [LEDGER_PAYMENT_APP.md](./LEDGER_PAYMENT_APP.md) | Bank/Ledger MCP |
+| Ledger and Payment Operations | `ledger.demo.xyena.ai` | [LEDGER_PAYMENT_APP.md](./LEDGER_PAYMENT_APP.md) · [implementation](../../demos/ledger-payment/README.md) | Bank/Ledger MCP |
 
 Shared runtime, data, event, identity, deployment, and MCP requirements are defined in [SHARED_PLATFORM_REQUIREMENTS.md](./SHARED_PLATFORM_REQUIREMENTS.md).
 

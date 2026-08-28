@@ -1,5 +1,10 @@
 # Ledger and Payment Operations External Demo Application
 
+> Implementation status: the double-entry ledger, eight MCP tools, settlement inbox,
+> reconciliation path and multi-page frontend are implemented in
+> [`demos/ledger-payment`](../../demos/ledger-payment/README.md). The governed cross-service runner
+> is in [`demos/e2e`](../../demos/e2e/README.md).
+
 ## 1. Application identity
 
 ```text

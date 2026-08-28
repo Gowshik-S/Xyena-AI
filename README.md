@@ -27,7 +27,9 @@ delivered checkpoints, deployment gates and explicit exclusions.
 | `apps/worker` | durable agent jobs, approval resume, embeddings, recovery and outbox delivery |
 | `apps/mcp_server` | hosted MCP, reviewed remote discovery, canonical broker and Guardian-routed calls |
 | `apps/guardian` | deterministic policy, approvals and single-use exact-request authorization |
-| `demos/bank-mcp` | synthetic bank evidence/preparation MCP service and light operations frontend |
+| `demos/bank-mcp` | synthetic Bank/AA and Guardian-governed payment operations |
+| `demos/ledger-payment` | immutable double-entry ledger, settlement and reconciliation |
+| `demos/e2e` | governed bank/ledger financing coordinator |
 | `demos/gst-portal` | synthetic GST/e-Invoice workflow, multi-page portal and read-only evidence MCP |
 | `demos/buyer-erp` | synthetic purchase-order, receipt, invoice-matching and acceptance evidence |
 | `demos/delivery-mcp` | synthetic delivery/fulfilment status and proof evidence MCP service |
@@ -243,10 +245,9 @@ immediately affect MCP results.
 | GST and e-Invoice | `gst.demo.xyena.ai` | implemented | [GST/e-Invoice app](./demos/gst-portal/README.md) |
 | Buyer and ERP | `erp.demo.xyena.ai` | implemented | [Buyer/ERP app](./demos/buyer-erp/README.md) |
 | Delivery and Fulfilment | `delivery.demo.xyena.ai` | implemented | [Delivery app](./demos/delivery-mcp/README.md) |
-| Synthetic Bank MCP | `bank.demo.xyena.ai` | implemented | [Bank demo](./demos/bank-mcp/README.md) |
-| Bank and Account Aggregator target | `bank.demo.xyena.ai` | specified | [Bank/AA app](./docs/ext-demo/BANK_AA_APP.md) |
+| Bank and Account Aggregator | `bank.demo.xyena.ai` | implemented | [Bank/AA app](./demos/bank-mcp/README.md) |
 | Funder Marketplace | `funder.demo.xyena.ai` | implemented | [Funder app](./demos/funder-marketplace/README.md) |
-| Ledger and Payment Operations | `ledger.demo.xyena.ai` | specified | [Ledger app](./docs/ext-demo/LEDGER_PAYMENT_APP.md) |
+| Ledger and Payment Operations | `ledger.demo.xyena.ai` | implemented | [Ledger app](./demos/ledger-payment/README.md) |
 
 Start with the [External Demo Suite Overview](./docs/ext-demo/README.md) and [Shared Platform Requirements](./docs/ext-demo/SHARED_PLATFORM_REQUIREMENTS.md).
 
