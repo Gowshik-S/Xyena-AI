@@ -1,0 +1,65 @@
+name: xyena-buyer-erp-demo
+
+x-buyer-erp: &buyer-erp
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    ERP_DEMO_DATABASE_URL: postgresql+asyncpg://buyer_erp:${ERP_POSTGRES_PASSWORD:-change-me}@erp-postgres:5432/buyer_erp
+    ERP_DEMO_PUBLIC_MCP_URL: http://buyer-erp:8092/mcp
+  networks:
+    - erp-internal
+    - xyena-backend
+
+services:
+  erp-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: buyer_erp
+      POSTGRES_USER: buyer_erp
+      POSTGRES_PASSWORD: ${ERP_POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - erp-postgres-data:/var/lib/postgresql/data
+    networks:
+      - erp-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buyer_erp -d buyer_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  buyer-erp:
+    <<: *buyer-erp
+    restart: unless-stopped
+    depends_on:
+      erp-postgres:
+        condition: service_healthy
+    ports:
+      - "8092:8092"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *buyer-erp
+    profiles: ["registration"]
+    command: ["buyer-erp-register"]
+    depends_on:
+      buyer-erp:
+        condition: service_healthy
+
+networks:
+  erp-internal:
+    internal: true
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  erp-postgres-data:
+
