@@ -14,7 +14,9 @@ dependencies = [
   "cryptography>=44,<46",
   "fastapi>=0.115,<1",
   "httpx>=0.28,<1",
-  "mcp>=1.19,<3",
+  "httpx2>=0.1,<1",
+  "jsonschema>=4.23,<5",
+  "mcp>=2,<3",
   "openai-agents>=0.6,<1",
   "opentelemetry-api>=1.29,<2",
   "opentelemetry-exporter-otlp>=1.29,<2",
@@ -62,4 +64,3 @@ plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-

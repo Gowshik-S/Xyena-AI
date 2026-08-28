@@ -3,6 +3,18 @@ from .audit import AuditEvent, OutboxEvent
 from .conversation import Conversation, ConversationMember, Message, ProviderState, Session
 from .iam import Consent, Membership, Organization, ServiceIdentity, Tenant, User
 from .ops import IdempotencyRecord, Job
+from .mcp import (
+    AgentToolGrant,
+    MCPCallAttempt,
+    MCPHealthEvent,
+    MCPServer,
+    MCPServerVersion,
+    MCPTool,
+    MCPToolCall,
+    MCPToolPolicy,
+    MCPToolResult,
+    MCPToolVersion,
+)
 
 __all__ = [
     "AgentDefinition",
@@ -25,5 +37,14 @@ __all__ = [
     "Session",
     "Tenant",
     "User",
+    "AgentToolGrant",
+    "MCPCallAttempt",
+    "MCPHealthEvent",
+    "MCPServer",
+    "MCPServerVersion",
+    "MCPTool",
+    "MCPToolCall",
+    "MCPToolPolicy",
+    "MCPToolResult",
+    "MCPToolVersion",
 ]
-
