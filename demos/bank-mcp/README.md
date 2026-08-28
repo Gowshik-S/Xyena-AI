@@ -26,6 +26,18 @@ The frontend source is kept separately in `frontend/`. It uses a restrained fina
 palette (paper white, ink, navy, green, and amber), system typography, and no neon, purple, gradient,
 or generated-art styling. It has no Node.js or external browser dependency and is served by FastAPI.
 
+Each operational responsibility has its own page and URL:
+
+- `/` — operations overview;
+- `/accounts` — tokenized accounts, balances, and preparation limits;
+- `/transactions` — consented synthetic transaction evidence;
+- `/beneficiaries` — masked counterparty verification;
+- `/prepared-actions` — canonical proposals and action hashes;
+- `/mcp-connection` — reviewed tools, transport, and signed runtime scope.
+
+Dashboard access is retained only in browser `sessionStorage`, so navigation between pages does not
+require repeated token entry and closing the tab clears the browser-held credential.
+
 ## Architecture and trust path
 
 ```text

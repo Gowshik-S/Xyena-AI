@@ -1,6 +1,6 @@
 import json
 import secrets
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
@@ -28,6 +28,14 @@ PACKAGED_FRONTEND_ROOT = Path(__file__).resolve().parent / "frontend"
 FRONTEND_ROOT = (
     SOURCE_FRONTEND_ROOT if SOURCE_FRONTEND_ROOT.is_dir() else PACKAGED_FRONTEND_ROOT
 )
+FRONTEND_PAGES = {
+    "/": "index.html",
+    "/accounts": "accounts.html",
+    "/transactions": "transactions.html",
+    "/beneficiaries": "beneficiaries.html",
+    "/prepared-actions": "prepared-actions.html",
+    "/mcp-connection": "mcp-connection.html",
+}
 
 
 class MCPBearerAuthMiddleware:
@@ -92,9 +100,20 @@ def create_app() -> FastAPI:
     app.mount("/mcp", MCPBearerAuthMiddleware(mcp_app))
     app.mount("/assets", StaticFiles(directory=FRONTEND_ROOT), name="bank-demo-assets")
 
-    @app.get("/", include_in_schema=False)
-    async def dashboard() -> FileResponse:
-        return FileResponse(FRONTEND_ROOT / "index.html")
+    def frontend_page(filename: str) -> Callable[[], Awaitable[FileResponse]]:
+        async def page() -> FileResponse:
+            return FileResponse(FRONTEND_ROOT / filename)
+
+        return page
+
+    for route, filename in FRONTEND_PAGES.items():
+        app.add_api_route(
+            route,
+            frontend_page(filename),
+            methods=["GET"],
+            include_in_schema=False,
+            name=f"frontend-{filename.removesuffix('.html')}",
+        )
 
     @app.get("/health/live", tags=["health"])
     async def live() -> dict[str, str]:

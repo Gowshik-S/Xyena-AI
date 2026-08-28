@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Accounts · XYENA Bank</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="accounts">
+  <div class="environment-strip"><span class="environment-dot"></span>Synthetic demonstration environment — balances and accounts are fictional</div>
+  <div class="app-shell"><aside class="sidebar">
+    <a class="brand" href="/"><span class="brand-mark">X</span><span><strong>XYENA Bank</strong><small>Operations console</small></span></a>
+    <nav aria-label="Bank operations"><a class="nav-link" href="/">Overview</a><a class="nav-link active" href="/accounts">Accounts</a><a class="nav-link" href="/transactions">Transactions</a><a class="nav-link" href="/beneficiaries">Beneficiaries</a><a class="nav-link" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a></nav>
+    <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Execution disabled</strong><p>Account evidence is read-only. No balance can be changed here.</p></div>
+  </aside><main>
+    <header class="topbar"><div><p class="kicker">Scoped resources</p><h1>Accounts</h1><p class="page-intro">Review tokenized account identity, available funds and preparation limits.</p></div><button class="connection-state" id="disconnectButton" data-state="locked" disabled><span></span><span id="connectionLabel">Dashboard locked</span></button></header>
+    <section class="access-panel access-panel-compact" id="accessPanel"><div><h2>Unlock account evidence</h2><p>The dashboard token is retained only for this browser tab.</p></div><form id="accessForm"><label class="sr-only" for="token">Dashboard token</label><input id="token" type="password" autocomplete="off" placeholder="BANK_DEMO_UI_TOKEN" required><button type="submit">View accounts</button></form><p class="form-message" id="formMessage" role="status">Enter the local UI token.</p></section>
+    <section class="metric-grid metric-grid-three"><article class="metric-card"><span class="metric-label">Available funds</span><strong id="availableFunds">—</strong><small>Across active scoped accounts</small></article><article class="metric-card"><span class="metric-label">Active accounts</span><strong id="accountCount">—</strong><small>Visible to the signed demo user</small></article><article class="metric-card"><span class="metric-label">Highest transfer limit</span><strong id="highestLimit">—</strong><small>Preparation policy ceiling</small></article></section>
+    <section class="panel"><div class="panel-header"><div><p class="section-label">Account register</p><h2>Tokenized accounts</h2></div><span class="panel-note">Tenant and user isolated</span></div><div class="table-wrap"><table><thead><tr><th>Account</th><th>Token</th><th>Available</th><th>Transfer limit</th><th>Status</th></tr></thead><tbody id="accountRows"><tr><td class="empty" colspan="5">Unlock the dataset to view accounts.</td></tr></tbody></table></div></section>
+    <section class="explain-strip"><strong>Why tokens?</strong><p>MCP responses use opaque account tokens and masked numbers so an agent never needs a raw bank account number.</p></section>
+  </main></div><script src="/assets/app.js" defer></script>
+</body></html>

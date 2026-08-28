@@ -16,88 +16,127 @@ const money = (value, currency = "INR") => new Intl.NumberFormat("en-IN", {
   style: "currency", currency, maximumFractionDigits: 2,
 }).format(Number(value));
 
-byId("toolGrid").innerHTML = tools.map(([name, risk]) => `
-  <div class="tool-item"><code>${name}</code><small>${risk} · Guardian policy</small></div>
-`).join("");
+function setText(id, value) {
+  const element = byId(id);
+  if (element) element.textContent = value;
+}
 
-function render(data) {
-  const total = data.accounts.reduce((sum, account) => sum + Number(account.available_balance), 0);
-  const verified = data.beneficiaries.filter((beneficiary) => beneficiary.verified).length;
-  byId("availableFunds").textContent = money(total);
-  byId("accountCount").textContent = data.accounts.length;
-  byId("verifiedCount").textContent = verified;
-  byId("beneficiarySubtext").textContent = `${verified} of ${data.beneficiaries.length} currently verified`;
-  byId("actionCount").textContent = data.prepared_actions.length;
-  byId("auditCount").textContent = data.audit_event_count;
-  byId("tenantId").textContent = data.scope.tenant_id;
-  byId("organizationId").textContent = data.scope.organization_id;
-  byId("userId").textContent = data.scope.user_id;
-
-  byId("accountRows").innerHTML = data.accounts.length ? data.accounts.map((account) => `
-    <tr>
-      <td><strong>${escapeHtml(account.display_name)}</strong><small>${escapeHtml(account.masked_number)}</small></td>
-      <td><code>${escapeHtml(account.account_token)}</code></td>
-      <td class="align-right"><strong>${money(account.available_balance, account.currency)}</strong></td>
-      <td class="align-right">${money(account.per_transfer_limit, account.currency)}</td>
-      <td><span class="status status-safe">Active</span></td>
-    </tr>
-  `).join("") : '<tr><td class="empty" colspan="5">No accounts in this scope.</td></tr>';
-
-  byId("beneficiaryList").innerHTML = data.beneficiaries.length ? data.beneficiaries.map((beneficiary) => `
-    <div class="list-item">
-      <div><strong>${escapeHtml(beneficiary.owner_name)}</strong><small>${escapeHtml(beneficiary.masked_account)} · ${escapeHtml(beneficiary.beneficiary_token)}</small></div>
-      <span class="status ${beneficiary.verified ? "status-safe" : "status-review"}">${beneficiary.verified ? "Verified" : "Review"}</span>
-    </div>
-  `).join("") : '<p class="empty-block">No beneficiaries in this scope.</p>';
-
-  byId("transactionList").innerHTML = data.transactions.length ? data.transactions.map((transaction) => `
+function renderTransactions(target, transactions, limit = transactions.length) {
+  const element = byId(target);
+  if (!element) return;
+  const values = transactions.slice(0, limit);
+  element.innerHTML = values.length ? values.map((transaction) => `
     <div class="transaction-item">
       <div><strong>${escapeHtml(transaction.description)}</strong><small>${escapeHtml(transaction.booked_on)} · ${escapeHtml(transaction.reference)}</small></div>
       <strong class="transaction-amount ${transaction.direction.toLowerCase()}">${transaction.direction === "CREDIT" ? "+" : "−"} ${money(transaction.amount, transaction.currency)}</strong>
     </div>
-  `).join("") : '<p class="empty-block">No transactions in this window.</p>';
-
-  byId("actionRows").innerHTML = data.prepared_actions.length ? data.prepared_actions.map((action) => `
-    <tr>
-      <td><strong>${escapeHtml(action.proposed_action_id)}</strong></td>
-      <td><code title="${escapeHtml(action.canonical_action_hash)}">${escapeHtml(action.canonical_action_hash)}</code></td>
-      <td class="align-right"><strong>${money(action.amount, action.currency)}</strong></td>
-      <td><span class="status status-review">${escapeHtml(action.status)}</span></td>
-    </tr>
-  `).join("") : '<tr><td class="empty" colspan="4">No action has been prepared through MCP.</td></tr>';
+  `).join("") : '<p class="empty-block">No transactions are available in this evidence set.</p>';
 }
 
-byId("accessForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
+function renderData(data) {
+  const available = data.accounts.reduce((sum, account) => sum + Number(account.available_balance), 0);
+  const highestLimit = data.accounts.reduce((highest, account) => Math.max(highest, Number(account.per_transfer_limit)), 0);
+  const verified = data.beneficiaries.filter((beneficiary) => beneficiary.verified).length;
+  const readyActions = data.prepared_actions.filter((action) => action.status === "READY_FOR_GUARDIAN").length;
+  const credits = data.transactions.filter((transaction) => transaction.direction === "CREDIT").reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+  const debits = data.transactions.filter((transaction) => transaction.direction === "DEBIT").reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+
+  setText("availableFunds", money(available));
+  setText("highestLimit", money(highestLimit));
+  setText("accountCount", data.accounts.length);
+  setText("beneficiaryCount", data.beneficiaries.length);
+  setText("verifiedCount", verified);
+  setText("reviewCount", data.beneficiaries.length - verified);
+  setText("beneficiarySubtext", `${verified} of ${data.beneficiaries.length} currently verified`);
+  setText("actionCount", data.prepared_actions.length);
+  setText("readyActionCount", readyActions);
+  setText("auditCount", data.audit_event_count);
+  setText("creditTotal", money(credits));
+  setText("debitTotal", money(debits));
+  setText("transactionCount", data.transactions.length);
+  setText("tenantId", data.scope.tenant_id);
+  setText("organizationId", data.scope.organization_id);
+  setText("userId", data.scope.user_id);
+
+  const accountRows = byId("accountRows");
+  if (accountRows) accountRows.innerHTML = data.accounts.length ? data.accounts.map((account) => `
+    <tr><td><strong>${escapeHtml(account.display_name)}</strong><small>${escapeHtml(account.masked_number)}</small></td><td><code>${escapeHtml(account.account_token)}</code></td><td class="align-right"><strong>${money(account.available_balance, account.currency)}</strong></td><td class="align-right">${money(account.per_transfer_limit, account.currency)}</td><td><span class="status status-safe">Active</span></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No accounts exist in this signed scope.</td></tr>';
+
+  const transactionRows = byId("transactionRows");
+  if (transactionRows) transactionRows.innerHTML = data.transactions.length ? data.transactions.map((transaction) => `
+    <tr><td>${escapeHtml(transaction.booked_on)}</td><td><strong>${escapeHtml(transaction.description)}</strong></td><td><code>${escapeHtml(transaction.reference)}</code></td><td><span class="direction direction-${transaction.direction.toLowerCase()}">${escapeHtml(transaction.direction)}</span></td><td class="align-right"><strong>${transaction.direction === "CREDIT" ? "+" : "−"} ${money(transaction.amount, transaction.currency)}</strong></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No transaction evidence is available.</td></tr>';
+
+  const beneficiaryRows = byId("beneficiaryRows");
+  if (beneficiaryRows) beneficiaryRows.innerHTML = data.beneficiaries.length ? data.beneficiaries.map((beneficiary) => `
+    <tr><td><strong>${escapeHtml(beneficiary.owner_name)}</strong></td><td><code>${escapeHtml(beneficiary.beneficiary_token)}</code></td><td>${escapeHtml(beneficiary.masked_account)}</td><td><span class="status ${beneficiary.verified ? "status-safe" : "status-review"}">${beneficiary.verified ? "Verified" : "Review required"}</span></td><td>${escapeHtml(beneficiary.status)}</td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No beneficiaries exist in this tenant.</td></tr>';
+
+  const actionRows = byId("actionRows");
+  if (actionRows) actionRows.innerHTML = data.prepared_actions.length ? data.prepared_actions.map((action) => `
+    <tr><td><strong>${escapeHtml(action.proposed_action_id)}</strong></td><td><code title="${escapeHtml(action.canonical_action_hash)}">${escapeHtml(action.canonical_action_hash)}</code></td><td class="align-right"><strong>${money(action.amount, action.currency)}</strong></td><td><span class="status status-review">${escapeHtml(action.status)}</span></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="4">No action has been prepared through MCP.</td></tr>';
+
+  renderTransactions("overviewTransactions", data.transactions, 5);
+}
+
+function renderToolCatalog() {
+  const grid = byId("toolGrid");
+  if (!grid) return;
+  grid.innerHTML = tools.map(([name, risk]) => `
+    <div class="tool-item"><code>${name}</code><small>${risk} · Guardian policy</small></div>
+  `).join("");
+}
+
+function setConnection(state, label) {
+  const connection = byId("disconnectButton");
+  if (!connection) return;
+  connection.dataset.state = state;
+  connection.disabled = state !== "ready";
+  setText("connectionLabel", label);
+  connection.title = state === "ready" ? "Clear this tab's dashboard access" : "Dashboard access is locked";
+}
+
+async function loadData(token, automatic = false) {
+  const form = byId("accessForm");
+  const button = form?.querySelector("button");
   const message = byId("formMessage");
-  const connection = byId("connectionState");
-  button.disabled = true;
-  button.textContent = "Connecting…";
-  message.classList.remove("error");
-  message.textContent = "Loading the scoped synthetic dataset.";
+  const originalLabel = button?.textContent;
+  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  if (message) { message.classList.remove("error"); message.textContent = "Loading the scoped synthetic dataset."; }
   try {
-    const response = await fetch("/api/v1/demo/summary", {
-      headers: { "X-Demo-Token": byId("token").value },
-    });
-    if (!response.ok) throw new Error(response.status === 401 ? "The dashboard token was not accepted." : `Request failed (${response.status}).`);
+    const response = await fetch("/api/v1/demo/summary", { headers: { "X-Demo-Token": token } });
+    if (!response.ok) throw new Error(response.status === 401 ? "The dashboard token was not accepted." : `The bank API returned status ${response.status}.`);
     const data = await response.json();
-    render(data);
-    connection.dataset.state = "ready";
-    byId("connectionLabel").textContent = "Synthetic dataset connected";
-    message.textContent = "Connected. MCP remains protected by its separate workload token and signed runtime scope.";
+    renderData(data);
+    sessionStorage.setItem("xyena-bank-demo-ui-token", token);
+    setConnection("ready", "Synthetic dataset connected");
+    byId("accessPanel")?.classList.add("access-panel-connected");
+    if (message) message.textContent = "Connected for this browser tab. Select the status control to lock it again.";
   } catch (error) {
-    connection.dataset.state = "error";
-    byId("connectionLabel").textContent = "Connection failed";
-    message.classList.add("error");
-    message.textContent = error.message;
+    sessionStorage.removeItem("xyena-bank-demo-ui-token");
+    setConnection("error", "Connection failed");
+    if (message) { message.classList.add("error"); message.textContent = error.message; }
+    if (automatic) byId("accessPanel")?.classList.remove("access-panel-connected");
   } finally {
-    button.disabled = false;
-    button.textContent = "Open dashboard";
+    if (button) { button.disabled = false; button.textContent = originalLabel; }
   }
+}
+
+renderToolCatalog();
+const accessForm = byId("accessForm");
+accessForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  loadData(byId("token").value);
+});
+byId("disconnectButton")?.addEventListener("click", () => {
+  sessionStorage.removeItem("xyena-bank-demo-ui-token");
+  window.location.reload();
 });
 
-document.querySelectorAll(".nav-link").forEach((link) => link.addEventListener("click", () => {
-  document.querySelectorAll(".nav-link").forEach((item) => item.classList.remove("active"));
-  link.classList.add("active");
-}));
+const savedToken = sessionStorage.getItem("xyena-bank-demo-ui-token");
+if (savedToken) {
+  byId("token").value = savedToken;
+  loadData(savedToken, true);
+}

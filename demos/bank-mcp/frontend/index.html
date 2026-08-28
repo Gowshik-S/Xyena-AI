@@ -1,168 +1,57 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="XYENA synthetic bank MCP operations console">
-  <title>XYENA Bank Operations</title>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="XYENA synthetic bank operations overview">
+  <title>Overview · XYENA Bank</title><link rel="stylesheet" href="/assets/styles.css">
 </head>
-<body>
-  <div class="environment-strip">
-    <span class="environment-dot" aria-hidden="true"></span>
-    Synthetic demonstration environment — no real financial institution or payment rail is connected
-  </div>
-
+<body data-page="overview">
+  <div class="environment-strip"><span class="environment-dot"></span>Synthetic demonstration environment — no real financial institution or payment rail is connected</div>
   <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="#overview" aria-label="XYENA Bank home">
-        <span class="brand-mark">X</span>
-        <span><strong>XYENA Bank</strong><small>Operations console</small></span>
-      </a>
-
-      <nav aria-label="Main navigation">
-        <a class="nav-link active" href="#overview">Overview</a>
-        <a class="nav-link" href="#accounts">Accounts</a>
-        <a class="nav-link" href="#transactions">Transactions</a>
-        <a class="nav-link" href="#beneficiaries">Beneficiaries</a>
-        <a class="nav-link" href="#prepared-actions">Prepared actions</a>
-        <a class="nav-link" href="#mcp-tools">MCP connection</a>
+      <a class="brand" href="/"><span class="brand-mark">X</span><span><strong>XYENA Bank</strong><small>Operations console</small></span></a>
+      <nav aria-label="Bank operations">
+        <a class="nav-link active" href="/">Overview</a><a class="nav-link" href="/accounts">Accounts</a>
+        <a class="nav-link" href="/transactions">Transactions</a><a class="nav-link" href="/beneficiaries">Beneficiaries</a>
+        <a class="nav-link" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a>
       </nav>
-
-      <div class="boundary-card">
-        <span class="boundary-icon">✓</span>
-        <strong>Execution disabled</strong>
-        <p>This service prepares action hashes. It cannot move funds or change balances.</p>
-      </div>
+      <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Execution disabled</strong><p>This service prepares action hashes. It cannot move funds or change balances.</p></div>
     </aside>
-
     <main>
-      <header class="topbar">
-        <div>
-          <p class="kicker">Banking evidence and controls</p>
-          <h1>Operations overview</h1>
-        </div>
-        <div class="connection-state" id="connectionState" data-state="locked">
-          <span></span><span id="connectionLabel">Dashboard locked</span>
-        </div>
-      </header>
-
-      <section class="access-panel" id="overview">
-        <div>
-          <h2>Connect to the demonstration dataset</h2>
-          <p>The dashboard credential is separate from the MCP workload credential.</p>
-        </div>
-        <form id="accessForm">
-          <label class="sr-only" for="token">Dashboard token</label>
-          <input id="token" type="password" autocomplete="off" placeholder="BANK_DEMO_UI_TOKEN" required>
-          <button type="submit">Open dashboard</button>
-        </form>
+      <header class="topbar"><div><p class="kicker">Banking evidence and controls</p><h1>Operations overview</h1></div><button class="connection-state" id="disconnectButton" data-state="locked" disabled><span></span><span id="connectionLabel">Dashboard locked</span></button></header>
+      <section class="access-panel" id="accessPanel">
+        <div><h2>Open the demonstration dataset</h2><p>One session unlocks every bank operations page. The credential never becomes an MCP credential.</p></div>
+        <form id="accessForm"><label class="sr-only" for="token">Dashboard token</label><input id="token" type="password" autocomplete="off" placeholder="BANK_DEMO_UI_TOKEN" required><button type="submit">Open dashboard</button></form>
         <p class="form-message" id="formMessage" role="status">Enter the local UI token configured for this service.</p>
       </section>
 
-      <section class="metric-grid" aria-label="Key metrics">
-        <article class="metric-card">
-          <span class="metric-label">Available funds</span>
-          <strong id="availableFunds">—</strong>
-          <small>Across scoped synthetic accounts</small>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Active accounts</span>
-          <strong id="accountCount">—</strong>
-          <small>Opaque tokens; numbers remain masked</small>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Verified beneficiaries</span>
-          <strong id="verifiedCount">—</strong>
-          <small id="beneficiarySubtext">Evidence not loaded</small>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Prepared actions</span>
-          <strong id="actionCount">—</strong>
-          <small>Preparation only; never executed here</small>
-        </article>
+      <section class="metric-grid" aria-label="Bank overview metrics">
+        <article class="metric-card"><span class="metric-label">Available funds</span><strong id="availableFunds">—</strong><small>Across scoped synthetic accounts</small></article>
+        <article class="metric-card"><span class="metric-label">Active accounts</span><strong id="accountCount">—</strong><small>Opaque tokens; numbers remain masked</small></article>
+        <article class="metric-card"><span class="metric-label">Verified beneficiaries</span><strong id="verifiedCount">—</strong><small id="beneficiarySubtext">Evidence not loaded</small></article>
+        <article class="metric-card"><span class="metric-label">Prepared actions</span><strong id="actionCount">—</strong><small>Preparation only; never executed here</small></article>
       </section>
 
-      <section class="content-grid">
-        <article class="panel panel-wide" id="accounts">
-          <div class="panel-header">
-            <div><p class="section-label">Scoped resources</p><h2>Accounts</h2></div>
-            <span class="panel-note">Tenant and user isolated</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Account</th><th>Token</th><th>Available</th><th>Transfer limit</th><th>Status</th></tr></thead>
-              <tbody id="accountRows"><tr><td class="empty" colspan="5">Connect to load synthetic accounts.</td></tr></tbody>
-            </table>
-          </div>
+      <section class="content-grid overview-grid">
+        <article class="panel panel-wide">
+          <div class="panel-header"><div><p class="section-label">Recent evidence</p><h2>Latest account activity</h2></div><a class="text-link" href="/transactions">View transactions</a></div>
+          <div id="overviewTransactions" class="transaction-list"><p class="empty-block">Open the dataset to view recent activity.</p></div>
         </article>
-
-        <article class="panel" id="beneficiaries">
-          <div class="panel-header">
-            <div><p class="section-label">Counterparty controls</p><h2>Beneficiaries</h2></div>
-          </div>
-          <div id="beneficiaryList" class="stack-list"><p class="empty-block">No beneficiary evidence loaded.</p></div>
-        </article>
-
-        <article class="panel panel-wide" id="transactions">
-          <div class="panel-header">
-            <div><p class="section-label">Evidence feed</p><h2>Recent transactions</h2></div>
-            <span class="panel-note">Maximum MCP window: 90 days</span>
-          </div>
-          <div id="transactionList" class="transaction-list"><p class="empty-block">Connect to load transactions.</p></div>
-        </article>
-
         <article class="panel">
-          <div class="panel-header">
-            <div><p class="section-label">Governance</p><h2>Control posture</h2></div>
-          </div>
-          <dl class="control-list">
-            <div><dt>Payment execution</dt><dd class="status status-safe">Disabled</dd></div>
-            <div><dt>Runtime scope</dt><dd>HMAC signed</dd></div>
-            <div><dt>Tool governance</dt><dd>Guardian routed</dd></div>
-            <div><dt>Audit events</dt><dd id="auditCount">—</dd></div>
-            <div><dt>Data class</dt><dd>Synthetic only</dd></div>
-          </dl>
+          <div class="panel-header"><div><p class="section-label">Governance</p><h2>Control posture</h2></div></div>
+          <dl class="control-list"><div><dt>Payment execution</dt><dd class="status status-safe">Disabled</dd></div><div><dt>Runtime scope</dt><dd>HMAC signed</dd></div><div><dt>Tool governance</dt><dd>Guardian routed</dd></div><div><dt>Audit events</dt><dd id="auditCount">—</dd></div><div><dt>Data class</dt><dd>Synthetic only</dd></div></dl>
         </article>
-
-        <article class="panel panel-full" id="prepared-actions">
-          <div class="panel-header">
-            <div><p class="section-label">Canonical proposals</p><h2>Prepared actions</h2></div>
-            <span class="panel-note">Expires in 15 minutes · execution unavailable</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Action</th><th>Canonical hash</th><th>Amount</th><th>Status</th></tr></thead>
-              <tbody id="actionRows"><tr><td class="empty" colspan="4">No action has been prepared through MCP.</td></tr></tbody>
-            </table>
-          </div>
-        </article>
-
-        <article class="panel panel-full" id="mcp-tools">
-          <div class="panel-header">
-            <div><p class="section-label">Streamable HTTP</p><h2>MCP connection</h2></div>
-            <code>/mcp</code>
-          </div>
-          <div class="mcp-layout">
-            <div>
-              <h3>Reviewed tool catalog</h3>
-              <div class="tool-grid" id="toolGrid"></div>
-            </div>
-            <div class="scope-card">
-              <h3>Active demonstration scope</h3>
-              <dl>
-                <div><dt>Tenant</dt><dd id="tenantId">—</dd></div>
-                <div><dt>Organization</dt><dd id="organizationId">—</dd></div>
-                <div><dt>User</dt><dd id="userId">—</dd></div>
-                <div><dt>Transport</dt><dd>Streamable HTTP</dd></div>
-              </dl>
-            </div>
+        <article class="panel panel-full">
+          <div class="panel-header"><div><p class="section-label">Operations directory</p><h2>Review by responsibility</h2></div></div>
+          <div class="directory-grid">
+            <a href="/accounts"><strong>Accounts</strong><span>Balances, masks and account limits</span></a>
+            <a href="/transactions"><strong>Transactions</strong><span>Consented evidence and cash movement</span></a>
+            <a href="/beneficiaries"><strong>Beneficiaries</strong><span>Counterparty verification state</span></a>
+            <a href="/prepared-actions"><strong>Prepared actions</strong><span>Canonical proposals awaiting governance</span></a>
+            <a href="/mcp-connection"><strong>MCP connection</strong><span>Tools, signed scope and transport</span></a>
           </div>
         </article>
       </section>
     </main>
-  </div>
-
-  <script src="/assets/app.js" defer></script>
-</body>
-</html>
+  </div><script src="/assets/app.js" defer></script>
+</body></html>

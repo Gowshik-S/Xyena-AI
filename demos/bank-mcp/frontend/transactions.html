@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Transactions · XYENA Bank</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="transactions">
+  <div class="environment-strip"><span class="environment-dot"></span>Synthetic demonstration environment — transaction evidence is fictional</div>
+  <div class="app-shell"><aside class="sidebar">
+    <a class="brand" href="/"><span class="brand-mark">X</span><span><strong>XYENA Bank</strong><small>Operations console</small></span></a>
+    <nav aria-label="Bank operations"><a class="nav-link" href="/">Overview</a><a class="nav-link" href="/accounts">Accounts</a><a class="nav-link active" href="/transactions">Transactions</a><a class="nav-link" href="/beneficiaries">Beneficiaries</a><a class="nav-link" href="/prepared-actions">Prepared actions</a><a class="nav-link" href="/mcp-connection">MCP connection</a></nav>
+    <div class="boundary-card"><span class="boundary-icon">✓</span><strong>Evidence only</strong><p>Transaction history is consented, scoped and read-only.</p></div>
+  </aside><main>
+    <header class="topbar"><div><p class="kicker">Consented evidence</p><h1>Transactions</h1><p class="page-intro">Inspect synthetic cash movement used by bank evidence tools.</p></div><button class="connection-state" id="disconnectButton" data-state="locked" disabled><span></span><span id="connectionLabel">Dashboard locked</span></button></header>
+    <section class="access-panel access-panel-compact" id="accessPanel"><div><h2>Unlock transaction evidence</h2><p>MCP transaction queries are independently limited to a 90-day window.</p></div><form id="accessForm"><label class="sr-only" for="token">Dashboard token</label><input id="token" type="password" autocomplete="off" placeholder="BANK_DEMO_UI_TOKEN" required><button type="submit">View transactions</button></form><p class="form-message" id="formMessage" role="status">Enter the local UI token.</p></section>
+    <section class="metric-grid metric-grid-three"><article class="metric-card"><span class="metric-label">Synthetic credits</span><strong id="creditTotal">—</strong><small>Within the loaded evidence set</small></article><article class="metric-card"><span class="metric-label">Synthetic debits</span><strong id="debitTotal">—</strong><small>Within the loaded evidence set</small></article><article class="metric-card"><span class="metric-label">Evidence records</span><strong id="transactionCount">—</strong><small>Most recent records first</small></article></section>
+    <section class="panel"><div class="panel-header"><div><p class="section-label">Account activity</p><h2>Transaction register</h2></div><span class="panel-note">Maximum MCP window: 90 days</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Direction</th><th>Amount</th></tr></thead><tbody id="transactionRows"><tr><td class="empty" colspan="5">Unlock the dataset to view transactions.</td></tr></tbody></table></div></section>
+  </main></div><script src="/assets/app.js" defer></script>
+</body></html>
