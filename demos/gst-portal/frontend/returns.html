@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Return summaries · XYENA GST</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="returns">
+  <div id="portal-root"></div>
+  <template id="page-content">
+    <section class="page-intro"><div><strong>Versioned period summaries</strong><p>Return figures are derived from committed registered invoices and retained by version for reproducible evidence.</p></div><span class="status status-generated">Period view</span></section>
+    <section class="panel">
+      <div class="panel-header"><div><p class="section-label">Enterprise return ledger</p><h2>Tax and turnover summaries</h2></div><span class="panel-note">Read-only in this release</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Return / period</th><th>GSTIN</th><th class="numeric">Turnover</th><th class="numeric">Tax total</th><th class="numeric">Invoices</th><th>Status</th><th>Version</th></tr></thead><tbody id="returnRows"><tr><td colspan="7" class="empty-state">Loading period summaries…</td></tr></tbody></table></div>
+    </section>
+    <section class="panel" style="margin-top:16px"><div class="panel-header"><div><p class="section-label">Evidence rules</p><h2>Summary lineage</h2></div></div><div class="panel-body"><div class="detail-grid"><div class="detail-cell"><span>Included</span><strong>Registered invoice versions</strong></div><div class="detail-cell"><span>Excluded</span><strong>Draft, rejected and cancelled records</strong></div><div class="detail-cell"><span>Currency</span><strong>INR, server-calculated</strong></div><div class="detail-cell"><span>Consumer</span><strong>Xyena and Guardian agents via MCP</strong></div></div></div></section>
+  </template>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

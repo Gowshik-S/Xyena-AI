@@ -1,0 +1,64 @@
+name: xyena-gst-portal-demo
+
+x-gst-portal: &gst-portal
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    GST_PORTAL_DATABASE_URL: postgresql+asyncpg://gst_portal:${GST_POSTGRES_PASSWORD:-change-me}@gst-postgres:5432/gst_portal
+    GST_PORTAL_PUBLIC_MCP_URL: http://gst-portal:8091/mcp
+  networks:
+    - gst-internal
+    - xyena-backend
+
+services:
+  gst-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gst_portal
+      POSTGRES_USER: gst_portal
+      POSTGRES_PASSWORD: ${GST_POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - gst-postgres-data:/var/lib/postgresql/data
+    networks:
+      - gst-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gst_portal -d gst_portal"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  gst-portal:
+    <<: *gst-portal
+    restart: unless-stopped
+    depends_on:
+      gst-postgres:
+        condition: service_healthy
+    ports:
+      - "8091:8091"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *gst-portal
+    profiles: ["registration"]
+    command: ["gst-mcp-register"]
+    depends_on:
+      gst-portal:
+        condition: service_healthy
+
+networks:
+  gst-internal:
+    internal: true
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  gst-postgres-data:

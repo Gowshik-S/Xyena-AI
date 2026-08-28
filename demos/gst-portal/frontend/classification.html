@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MSME classification · XYENA GST</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="classification">
+  <div id="portal-root"></div>
+  <template id="page-content">
+    <section class="page-intro"><div><strong>Enterprise-level assessment</strong><p>Classification combines annual turnover and plant or equipment investment. It is never inferred from one invoice or transaction.</p></div><div id="classificationActions"></div></section>
+    <section class="classification-band" id="classificationStages" aria-label="Classification stages"><div class="classification-stage"><span>Declared</span><strong>—</strong></div><div class="classification-stage"><span>Calculated</span><strong>—</strong></div><div class="classification-stage"><span>Effective</span><strong>—</strong></div></section>
+    <section class="panel" style="margin-top:16px"><div class="panel-header"><div><p class="section-label">Assessment snapshot</p><h2>Inputs and provenance</h2></div><span class="panel-note">Append-only source history</span></div><div class="panel-body"><div class="detail-grid" id="classificationInputs"></div></div></section>
+    <section class="panel" id="classificationReview" style="display:none;margin-top:16px">
+      <div class="panel-header"><div><p class="section-label">Reviewer decision</p><h2>Record effective classification</h2></div><span class="panel-note">Creates a new snapshot; prior evidence is retained</span></div>
+      <div class="panel-body"><form class="form-grid" id="classificationReviewForm"><div class="field"><label for="effectiveClassification">Effective class</label><select id="effectiveClassification"><option>MICRO</option><option>SMALL</option><option>MEDIUM</option><option>OUTSIDE_MSME_LIMITS</option><option>UNKNOWN</option></select></div><div class="field span-2"><label for="classificationReason">Reviewer reason</label><input id="classificationReason" minlength="10" maxlength="500" placeholder="Explain the evidence supporting this effective classification" required></div><div class="form-actions span-3"><button class="primary-button" type="submit">Record reviewed snapshot</button></div></form></div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <div class="panel-header"><div><p class="section-label">Current policy</p><h2>Composite threshold table</h2></div><span class="panel-note">Both limits must be satisfied</span></div>
+      <div class="panel-body"><div class="thresholds"><article class="threshold"><strong>Micro</strong><p>Investment ≤ ₹2.5 crore</p><p>Turnover ≤ ₹10 crore</p></article><article class="threshold"><strong>Small</strong><p>Investment ≤ ₹25 crore</p><p>Turnover ≤ ₹100 crore</p></article><article class="threshold"><strong>Medium</strong><p>Investment ≤ ₹125 crore</p><p>Turnover ≤ ₹500 crore</p></article></div></div>
+    </section>
+  </template>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

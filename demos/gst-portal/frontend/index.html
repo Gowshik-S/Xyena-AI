@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Operations overview · XYENA GST</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="dashboard">
+  <div id="portal-root"></div>
+  <template id="page-content">
+    <section class="page-intro"><div><strong>Enterprise tax position</strong><p>Monitor committed invoice states, registered turnover and the effective MSME classification for the active enterprise.</p></div><a class="primary-button" href="/invoices/new">Create invoice</a></section>
+    <section class="metric-grid" aria-label="Key GST metrics">
+      <article class="metric"><span class="metric-label">Registered invoices</span><strong id="registeredCount">—</strong><small>Authoritative records with an IRN</small></article>
+      <article class="metric"><span class="metric-label">Awaiting completion</span><strong id="pendingCount">—</strong><small>Draft and submitted records</small></article>
+      <article class="metric"><span class="metric-label">Registered taxable value</span><strong id="taxableTurnover">—</strong><small>Calculated from committed invoice lines</small></article>
+      <article class="metric"><span class="metric-label">Registered tax total</span><strong id="taxTotal">—</strong><small>CGST, SGST and IGST combined</small></article>
+    </section>
+    <section class="content-grid">
+      <article class="panel">
+        <div class="panel-header"><div><p class="section-label">Recent activity</p><h2>Invoice docket</h2></div><a class="text-button" href="/invoices">Open register</a></div>
+        <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Buyer</th><th>FY</th><th class="numeric">Total</th><th>Status</th><th>Version</th></tr></thead><tbody id="dashboardInvoices"><tr><td colspan="6" class="empty-state">Loading committed records…</td></tr></tbody></table></div>
+      </article>
+      <aside class="panel">
+        <div class="panel-header"><div><p class="section-label">Enterprise assessment</p><h2>Classification position</h2></div></div>
+        <div class="panel-body" id="classificationCard"><p class="panel-note">Loading classification snapshot…</p></div>
+      </aside>
+      <article class="panel panel-full">
+        <div class="panel-header"><div><p class="section-label">Operational controls</p><h2>Separation of duties</h2></div><span class="panel-note">Browser writes remain separate from MCP reads</span></div>
+        <div class="panel-body"><div class="detail-grid"><div class="detail-cell"><span>Operator</span><strong>Creates and submits invoice drafts</strong></div><div class="detail-cell"><span>Reviewer</span><strong>Registers, rejects or cancels</strong></div><div class="detail-cell"><span>Guardian</span><strong>Authorizes every MCP evidence call</strong></div><div class="detail-cell"><span>Audit</span><strong>Records actor, reason and version</strong></div></div></div>
+      </article>
+    </section>
+  </template>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
