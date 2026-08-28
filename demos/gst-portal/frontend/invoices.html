@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice register · XYENA GST</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="invoices">
+  <div id="portal-root"></div>
+  <template id="page-content">
+    <section class="page-intro"><div><strong>Authoritative invoice register</strong><p>Search the active enterprise only. Every status change is versioned and recorded in the audit ledger.</p></div><a class="primary-button" href="/invoices/new">New invoice</a></section>
+    <form class="filters" id="invoiceFilters">
+      <div class="field"><label for="invoiceQuery">Invoice, buyer or GSTIN</label><input id="invoiceQuery" type="search" placeholder="Search this enterprise"></div>
+      <div class="field"><label for="invoiceStatus">Lifecycle status</label><select id="invoiceStatus"><option value="">All statuses</option><option>DRAFT</option><option>SUBMITTED</option><option>REGISTERED</option><option>REJECTED</option><option>CANCELLED</option></select></div>
+      <button class="secondary-button" type="submit">Apply filters</button>
+    </form>
+    <section class="panel">
+      <div class="panel-header"><div><p class="section-label">Enterprise-scoped records</p><h2>Invoices</h2></div><span class="panel-note" id="resultCount">Loading…</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Buyer</th><th>FY</th><th class="numeric">Invoice total</th><th>Status</th><th>Version</th></tr></thead><tbody id="invoiceRows"><tr><td colspan="6" class="empty-state">Loading invoice register…</td></tr></tbody></table></div>
+    </section>
+  </template>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MCP connection · XYENA GST</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="mcp">
+  <div id="portal-root"></div>
+  <template id="page-content">
+    <section class="page-intro"><div><strong>Xyena evidence interface</strong><p>This application exposes narrow, read-only GST tools. Guardian remains the decision point and the portal remains the system of record.</p></div><span class="status status-verified">Read only</span></section>
+    <section class="content-grid">
+      <article class="panel">
+        <div class="panel-header"><div><p class="section-label">Authorized catalog</p><h2>GST MCP tools</h2></div><span class="panel-note">Eight explicit evidence operations</span></div>
+        <div class="panel-body"><div class="tool-grid" id="mcpTools"></div></div>
+      </article>
+      <aside class="panel">
+        <div class="panel-header"><div><p class="section-label">Active request boundary</p><h2>Signed scope</h2></div></div>
+        <div class="panel-body"><p><strong>Tenant ID</strong><br><code class="identifier" id="mcpTenant">—</code></p><p><strong>Enterprise ID</strong><br><code class="identifier" id="mcpEnterprise">—</code></p><p class="panel-note">The caller also supplies user, session, run, call, correlation, agent, tool, purpose and request hash metadata. The portal verifies the signature before data access.</p></div>
+      </aside>
+      <article class="panel panel-full"><div class="panel-header"><div><p class="section-label">Control flow</p><h2>Responsibility boundary</h2></div></div><div class="panel-body"><div class="detail-grid"><div class="detail-cell"><span>1 · Xyena</span><strong>Requests a named GST capability</strong></div><div class="detail-cell"><span>2 · Guardian</span><strong>Evaluates policy and signed scope</strong></div><div class="detail-cell"><span>3 · GST MCP</span><strong>Reads only the approved enterprise</strong></div><div class="detail-cell"><span>4 · Response</span><strong>Returns versioned evidence and lineage</strong></div></div></div></article>
+    </section>
+  </template>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

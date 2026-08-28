@@ -14,6 +14,12 @@ Database         isolated PostgreSQL database/schema
 
 This is a functional GST/e-Invoice simulation with persistent data, real workflows and live UI updates. It does not file real tax returns or connect to a government system.
 
+> **Implementation status:** The initial runnable service is implemented in
+> [`demos/gst-portal`](../../demos/gst-portal/README.md), including the isolated data model,
+> governed invoice lifecycle, multi-page light frontend, OpenAPI 3.1 API, read-only MCP v2 catalog,
+> signed Xyena scope and Guardian registration utility. Real government connectivity remains
+> explicitly out of scope.
+
 Shared platform rules are inherited from [SHARED_PLATFORM_REQUIREMENTS.md](./SHARED_PLATFORM_REQUIREMENTS.md).
 
 ## 2. Authentication, enterprise accounts and roles

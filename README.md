@@ -10,10 +10,11 @@ The Xyena core backend, Guardian authorization plane, MCP registry/broker, agent
 context and memory, user-data services, migrations, containers and deployment manifests are
 implemented.
 
-An isolated synthetic bank MCP demonstration is implemented under `demos/bank-mcp`. It provides
-consented evidence reads and transfer preparation only; it cannot execute payments or connect to a
-real financial institution. GST/e-Invoice, Delivery and the remaining external applications are
-currently detailed implementation specifications, not runnable services.
+Isolated synthetic bank and GST/e-Invoice demonstrations are implemented under `demos/`. The bank
+service provides consented evidence reads and transfer preparation only. The GST service provides a
+stateful multi-page portal, governed invoice lifecycle and read-only MCP evidence. Neither service
+connects to a real financial institution or government system. Delivery and the remaining external
+applications remain detailed implementation specifications, not runnable services.
 
 See [Backend Implementation Status](./docs/backend-architecture/IMPLEMENTATION_STATUS.md) for the
 delivered checkpoints, deployment gates and explicit exclusions.
@@ -27,11 +28,13 @@ delivered checkpoints, deployment gates and explicit exclusions.
 | `apps/mcp_server` | hosted MCP, reviewed remote discovery, canonical broker and Guardian-routed calls |
 | `apps/guardian` | deterministic policy, approvals and single-use exact-request authorization |
 | `demos/bank-mcp` | synthetic bank evidence/preparation MCP service and light operations frontend |
+| `demos/gst-portal` | synthetic GST/e-Invoice workflow, multi-page portal and read-only evidence MCP |
 | `migrations/versions` | PostgreSQL/pgvector schemas and tenant row-level security |
 
 For local core configuration and deployment, start with `.env.example`, `compose.yaml` and the
-[backend architecture](./docs/backend-architecture/README.md). The bank demo has independent setup
-instructions in [demos/bank-mcp/README.md](./demos/bank-mcp/README.md).
+[backend architecture](./docs/backend-architecture/README.md). Independent setup instructions are
+available for the [bank demo](./demos/bank-mcp/README.md) and
+[GST portal](./demos/gst-portal/README.md).
 
 ## The problem
 
