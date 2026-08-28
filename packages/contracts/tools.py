@@ -63,6 +63,11 @@ class MCPServerView(ContractModel):
     updated_at: datetime
 
 
+class MCPServerReview(ContractModel):
+    trust_tier: Literal["PLATFORM", "REVIEWED_INTERNAL", "REVIEWED_EXTERNAL"]
+    status: Literal["ACTIVE", "SUSPENDED"]
+
+
 class DiscoveredTool(ContractModel):
     name: str
     description: str | None = None
@@ -84,6 +89,22 @@ class ToolPolicyCreate(ContractModel):
     hosted_mcp_allowed: bool = False
     timeout_seconds: float = Field(default=30, gt=0, le=300)
     maximum_result_bytes: int = Field(default=262_144, ge=1024, le=10_485_760)
+
+
+class MCPToolVersionView(ContractModel):
+    tool_id: UUID
+    tool_version_id: UUID
+    server_id: UUID
+    canonical_name: str
+    original_name: str
+    description: str | None
+    schema_hash: str
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
+    risk_class: str
+    tool_status: str
+    version_status: str
+    policy_status: str
 
 
 class ToolIntent(ContractModel):

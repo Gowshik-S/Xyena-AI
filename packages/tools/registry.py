@@ -2,10 +2,10 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.contracts.tools import MCPServerCreate
+from packages.contracts.tools import MCPServerCreate, MCPServerReview, ToolPolicyCreate
 from packages.mcp_gateway.client import RemoteMCPClient, RemoteServerConfig
 from packages.persistence.models.mcp import (
     MCPServer,
@@ -56,6 +56,7 @@ class ToolRegistry:
                 secret_ref=server.secret_ref,
                 timeout_seconds=float(server.timeout_seconds),
                 max_retries=server.max_retries,
+                allowed_egress_hosts=tuple(server.allowed_egress_hosts),
             )
         )
         discovery = {"server": server.label, "tools": sorted(tools, key=lambda item: item["name"]), **info}
@@ -81,6 +82,86 @@ class ToolRegistry:
         server.last_discovered_at = datetime.now(UTC)
         server.version += 1
         return version
+
+    async def review_server(
+        self, db: AsyncSession, server: MCPServer, review: MCPServerReview
+    ) -> MCPServer:
+        if server.last_discovered_at is None and review.status == "ACTIVE":
+            raise ValueError("Discover the server before activation.")
+        server.trust_tier = review.trust_tier
+        server.status = review.status
+        server.version += 1
+        return server
+
+    async def list_tool_versions(
+        self, db: AsyncSession, server_id: UUID
+    ) -> list[tuple[MCPTool, MCPToolVersion, MCPToolPolicy]]:
+        rows = (
+            await db.execute(
+                select(MCPTool, MCPToolVersion, MCPToolPolicy)
+                .join(MCPToolVersion, MCPToolVersion.tool_id == MCPTool.id)
+                .join(MCPToolPolicy, MCPToolPolicy.tool_version_id == MCPToolVersion.id)
+                .where(MCPTool.server_id == server_id)
+                .order_by(MCPTool.canonical_name, MCPToolVersion.created_at.desc())
+            )
+        ).all()
+        return list(rows)
+
+    async def review_tool_version(
+        self,
+        db: AsyncSession,
+        tool_version_id: UUID,
+        review: ToolPolicyCreate,
+    ) -> tuple[MCPTool, MCPToolVersion, MCPToolPolicy]:
+        row = (
+            await db.execute(
+                select(MCPTool, MCPToolVersion, MCPToolPolicy, MCPServer)
+                .join(MCPToolVersion, MCPToolVersion.tool_id == MCPTool.id)
+                .join(MCPToolPolicy, MCPToolPolicy.tool_version_id == MCPToolVersion.id)
+                .join(MCPServer, MCPServer.id == MCPTool.server_id)
+                .where(MCPToolVersion.id == tool_version_id)
+                .limit(1)
+            )
+        ).first()
+        if row is None:
+            raise LookupError("MCP tool version not found.")
+        tool, version, policy, server = row
+        if server.status != "ACTIVE":
+            raise ValueError("Activate the reviewed MCP server before its tools.")
+        if tool.canonical_name != review.canonical_name:
+            raise ValueError("Canonical tool name does not match the reviewed version.")
+        sibling_ids = select(MCPToolVersion.id).where(
+            MCPToolVersion.tool_id == tool.id,
+            MCPToolVersion.id != version.id,
+        )
+        await db.execute(
+            update(MCPToolVersion)
+            .where(MCPToolVersion.id.in_(sibling_ids))
+            .values(status="SUPERSEDED")
+        )
+        await db.execute(
+            update(MCPToolPolicy)
+            .where(MCPToolPolicy.tool_version_id.in_(sibling_ids))
+            .values(status="DISABLED")
+        )
+        version.risk_class = review.risk_class.value
+        version.side_effects = review.side_effects
+        version.idempotent = review.idempotent
+        version.parallel_allowed = review.parallel_allowed
+        version.hosted_mcp_allowed = review.hosted_mcp_allowed
+        version.status = "ACTIVE"
+        tool.status = "ACTIVE"
+        tool.version += 1
+        policy.required_roles = review.required_roles
+        policy.required_purposes = review.required_purposes
+        policy.required_consents = review.required_consents
+        policy.allowed_agents = review.allowed_agents
+        policy.approval_mode = review.approval_mode
+        policy.timeout_seconds = review.timeout_seconds
+        policy.maximum_result_bytes = review.maximum_result_bytes
+        policy.status = "ACTIVE"
+        policy.version += 1
+        return tool, version, policy
 
     async def _upsert_discovered_tool(
         self, db: AsyncSession, server: MCPServer, discovered: dict[str, Any]
@@ -145,4 +226,3 @@ class ToolRegistry:
 
 
 tool_registry = ToolRegistry()
-

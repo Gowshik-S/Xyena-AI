@@ -1,8 +1,12 @@
 import asyncio
+import hashlib
+import hmac
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx2
 from mcp import Client
@@ -18,13 +22,16 @@ class RemoteServerConfig:
     secret_ref: str | None
     timeout_seconds: float
     max_retries: int
+    allowed_egress_hosts: tuple[str, ...] = ()
 
 
 class RemoteMCPClient:
     def __init__(self, secret_resolver: SecretResolver | None = None) -> None:
         self.secret_resolver = secret_resolver or SecretResolver()
 
-    async def list_tools(self, config: RemoteServerConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    async def list_tools(
+        self, config: RemoteServerConfig
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         async with self._client(config) as client:
             result = await client.list_tools()
             tools = []
@@ -42,20 +49,27 @@ class RemoteMCPClient:
                 )
             info = {
                 "implementation_name": getattr(getattr(client, "server_info", None), "name", None),
-                "implementation_version": getattr(getattr(client, "server_info", None), "version", None),
+                "implementation_version": getattr(
+                    getattr(client, "server_info", None), "version", None
+                ),
                 "protocol_version": str(getattr(client, "protocol_version", "")) or None,
             }
             return tools, info
 
     async def call_tool(
-        self, config: RemoteServerConfig, tool_name: str, arguments: dict[str, Any]
+        self,
+        config: RemoteServerConfig,
+        tool_name: str,
+        arguments: dict[str, Any],
+        *,
+        meta: dict[str, Any] | None = None,
     ) -> Any:
         last_error: Exception | None = None
         for attempt in range(config.max_retries + 1):
             try:
                 async with self._client(config) as client:
                     result = await asyncio.wait_for(
-                        client.call_tool(tool_name, arguments),
+                        client.call_tool(tool_name, arguments, meta=meta),
                         timeout=config.timeout_seconds,
                     )
                     if getattr(result, "isError", False) or getattr(result, "is_error", False):
@@ -74,8 +88,27 @@ class RemoteMCPClient:
         assert last_error is not None
         raise last_error
 
+    def signed_runtime_meta(
+        self, config: RemoteServerConfig, envelope: dict[str, Any]
+    ) -> dict[str, Any]:
+        secret = self.secret_resolver.resolve(config.secret_ref)
+        if not secret:
+            raise RuntimeError(
+                "Remote MCP calls require a secret reference for signed runtime scope."
+            )
+        canonical = json.dumps(
+            envelope, sort_keys=True, separators=(",", ":"), default=str
+        ).encode()
+        signature = hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()
+        return {
+            "ai.xyena/runtime": envelope,
+            "ai.xyena/signature": signature,
+            "ai.xyena/signature-algorithm": "hmac-sha256",
+        }
+
     @asynccontextmanager
     async def _client(self, config: RemoteServerConfig) -> AsyncIterator[Client]:
+        self._validate_egress(config)
         token = self.secret_resolver.resolve(config.secret_ref)
         if token:
             timeout = httpx2.Timeout(config.timeout_seconds, read=max(config.timeout_seconds, 300))
@@ -90,6 +123,13 @@ class RemoteMCPClient:
             return
         async with Client(config.endpoint) as client:
             yield client
+
+    @staticmethod
+    def _validate_egress(config: RemoteServerConfig) -> None:
+        hostname = (urlparse(config.endpoint).hostname or "").rstrip(".").lower()
+        allowed = {value.rstrip(".").lower() for value in config.allowed_egress_hosts}
+        if not hostname or hostname not in allowed:
+            raise RuntimeError("Remote MCP endpoint is outside its exact egress host allowlist.")
 
 
 def _content_projection(content: Any) -> Any:

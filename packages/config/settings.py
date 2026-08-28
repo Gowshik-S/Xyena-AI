@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     guardian_base_url: AnyHttpUrl = "http://guardian:8082"
     mcp_base_url: AnyHttpUrl = "http://mcp-server:8081"
     service_token: SecretStr | None = None
+    mcp_admin_token: SecretStr | None = None
     guardian_signing_key: SecretStr | None = None
     guardian_verify_key: SecretStr | None = None
 
@@ -54,6 +55,7 @@ class Settings(BaseSettings):
     @field_validator(
         "openai_api_key",
         "service_token",
+        "mcp_admin_token",
         "guardian_signing_key",
         "guardian_verify_key",
         "object_store_access_key",

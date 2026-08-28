@@ -14,12 +14,15 @@ from apps.mcp_server.server import mcp, mcp_app
 from packages.config import get_settings
 from packages.contracts.tools import (
     MCPServerCreate,
+    MCPServerReview,
     MCPServerView,
+    MCPToolVersionView,
     SafeToolResult,
     ToolCallResume,
     ToolCallSubmit,
+    ToolPolicyCreate,
 )
-from packages.identity.service_auth import require_service_token
+from packages.identity.service_auth import require_mcp_admin_token, require_service_token
 from packages.observability import configure_logging, configure_telemetry
 from packages.persistence import get_database
 from packages.persistence.models.mcp import MCPServer
@@ -140,6 +143,92 @@ def create_app() -> FastAPI:
                 "server_version_id": str(version.id),
                 "discovery_hash": version.discovery_hash,
             }
+
+    @app.post(
+        "/internal/mcp/servers/{server_id}/review",
+        response_model=MCPServerView,
+        dependencies=[Depends(require_mcp_admin_token)],
+        tags=["review"],
+    )
+    async def review_server(
+        server_id: UUID, body: MCPServerReview, tenant_id: UUID | None = None
+    ) -> MCPServerView:
+        async with get_database().session(tenant_id=tenant_id, service_role="mcp") as db:
+            server = await db.get(MCPServer, server_id)
+            if server is None or server.tenant_id != tenant_id:
+                raise HTTPException(status_code=404, detail="MCP server not found.")
+            try:
+                value = await tool_registry.review_server(db, server, body)
+            except ValueError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            return MCPServerView.model_validate(value)
+
+    @app.get(
+        "/internal/mcp/servers/{server_id}/tools",
+        response_model=list[MCPToolVersionView],
+        dependencies=[Depends(require_mcp_admin_token)],
+        tags=["review"],
+    )
+    async def list_server_tools(
+        server_id: UUID, tenant_id: UUID | None = None
+    ) -> list[MCPToolVersionView]:
+        async with get_database().session(tenant_id=tenant_id, service_role="mcp") as db:
+            server = await db.get(MCPServer, server_id)
+            if server is None or server.tenant_id != tenant_id:
+                raise HTTPException(status_code=404, detail="MCP server not found.")
+            rows = await tool_registry.list_tool_versions(db, server_id)
+            return [
+                MCPToolVersionView(
+                    tool_id=tool.id,
+                    tool_version_id=version.id,
+                    server_id=tool.server_id,
+                    canonical_name=tool.canonical_name,
+                    original_name=tool.original_name,
+                    description=tool.description,
+                    schema_hash=version.schema_hash,
+                    input_schema=version.input_schema,
+                    output_schema=version.output_schema,
+                    risk_class=version.risk_class,
+                    tool_status=tool.status,
+                    version_status=version.status,
+                    policy_status=policy.status,
+                )
+                for tool, version, policy in rows
+            ]
+
+    @app.post(
+        "/internal/mcp/tools/{tool_version_id}/review",
+        response_model=MCPToolVersionView,
+        dependencies=[Depends(require_mcp_admin_token)],
+        tags=["review"],
+    )
+    async def review_tool_version(
+        tool_version_id: UUID, body: ToolPolicyCreate, tenant_id: UUID | None = None
+    ) -> MCPToolVersionView:
+        async with get_database().session(tenant_id=tenant_id, service_role="mcp") as db:
+            try:
+                tool, version, policy = await tool_registry.review_tool_version(
+                    db, tool_version_id, body
+                )
+            except LookupError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            return MCPToolVersionView(
+                tool_id=tool.id,
+                tool_version_id=version.id,
+                server_id=tool.server_id,
+                canonical_name=tool.canonical_name,
+                original_name=tool.original_name,
+                description=tool.description,
+                schema_hash=version.schema_hash,
+                input_schema=version.input_schema,
+                output_schema=version.output_schema,
+                risk_class=version.risk_class,
+                tool_status=tool.status,
+                version_status=version.status,
+                policy_status=policy.status,
+            )
 
     @app.post(
         "/internal/mcp/calls",

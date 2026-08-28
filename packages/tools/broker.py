@@ -274,6 +274,10 @@ class ToolBroker:
                 .join(MCPToolPolicy, MCPToolPolicy.tool_version_id == MCPToolVersion.id)
                 .where(
                     MCPTool.canonical_name == request.intent.requested_name,
+                    MCPTool.status == "ACTIVE",
+                    MCPToolVersion.status == "ACTIVE",
+                    MCPToolPolicy.status == "ACTIVE",
+                    MCPServer.status == "ACTIVE",
                     or_(
                         MCPToolPolicy.tenant_id == request.context.tenant_id,
                         MCPToolPolicy.tenant_id.is_(None),
@@ -375,16 +379,34 @@ class ToolBroker:
             if handler is not None:
                 projection = await handler(request.normalized_arguments)
             else:
+                remote_config = RemoteServerConfig(
+                    endpoint=server.endpoint,
+                    auth_type=server.auth_type,
+                    secret_ref=server.secret_ref,
+                    timeout_seconds=float(policy.timeout_seconds),
+                    max_retries=server.max_retries,
+                    allowed_egress_hosts=tuple(server.allowed_egress_hosts),
+                )
+                runtime_envelope = {
+                    "tenant_id": str(call.tenant_id),
+                    "organization_id": str(call.organization_id),
+                    "user_id": str(call.user_id),
+                    "session_id": str(call.session_id),
+                    "run_id": str(call.run_id),
+                    "call_id": str(call.id),
+                    "correlation_id": str(call.correlation_id),
+                    "agent_name": call.agent_name,
+                    "canonical_name": call.canonical_name,
+                    "purpose": call.purpose,
+                    "request_hash": call.request_hash,
+                }
                 projection = await self.remote_client.call_tool(
-                    RemoteServerConfig(
-                        endpoint=server.endpoint,
-                        auth_type=server.auth_type,
-                        secret_ref=server.secret_ref,
-                        timeout_seconds=float(policy.timeout_seconds),
-                        max_retries=server.max_retries,
-                    ),
+                    remote_config,
                     tool.original_name,
                     request.normalized_arguments,
+                    meta=self.remote_client.signed_runtime_meta(
+                        remote_config, runtime_envelope
+                    ),
                 )
             encoded = json.dumps(projection, default=str, separators=(",", ":")).encode()
             if len(encoded) > policy.maximum_result_bytes:
