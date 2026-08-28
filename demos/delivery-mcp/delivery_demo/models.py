@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -9,10 +9,14 @@ from .database import Base
 
 class Delivery(Base):
     __tablename__ = "deliveries"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "delivery_number", name="uq_delivery_number_tenant"),
+        UniqueConstraint("tenant_id", "tracking_number", name="uq_tracking_number_tenant"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    delivery_number: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    delivery_number: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     purchase_order_id: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     invoice_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     invoice_number: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
@@ -41,19 +45,23 @@ class Delivery(Base):
 
 class DeliveryItem(Base):
     __tablename__ = "delivery_items"
+    __table_args__ = (
+        UniqueConstraint("delivery_id", "po_line_id", name="uq_delivery_po_line"),
+        UniqueConstraint("delivery_id", "sku", name="uq_delivery_sku"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    delivery_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("deliveries.id", ondelete="RESTRICT"), nullable=False, index=True)
     po_line_id: Mapped[str] = mapped_column(String(80), nullable=False)
     invoice_line_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     sku: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str] = mapped_column(String(240), nullable=False)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
-    ordered_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    dispatched_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    delivered_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False, default=Decimal("0.00"))
-    accepted_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False, default=Decimal("0.00"))
-    rejected_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False, default=Decimal("0.00"))
+    ordered_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    dispatched_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    delivered_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False, default=Decimal("0.000"))
+    accepted_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False, default=Decimal("0.000"))
+    rejected_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False, default=Decimal("0.000"))
     supported_unit_value: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     rejection_reason: Mapped[str | None] = mapped_column(String(240), nullable=True)
     version: Mapped[int] = mapped_column(nullable=False, default=1)
@@ -61,9 +69,10 @@ class DeliveryItem(Base):
 
 class DeliveryEvent(Base):
     __tablename__ = "delivery_events"
+    __table_args__ = (UniqueConstraint("delivery_id", "version", name="uq_delivery_event_version"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    delivery_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("deliveries.id", ondelete="RESTRICT"), nullable=False, index=True)
     event_type: Mapped[str] = mapped_column(String(80), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     actor: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -80,7 +89,7 @@ class ProofOfDelivery(Base):
     __tablename__ = "proofs_of_delivery"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    delivery_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("deliveries.id", ondelete="RESTRICT"), nullable=False, index=True)
     proof_type: Mapped[str] = mapped_column(String(80), nullable=False)  # SIGNATURE, PHOTO, OTP, etc.
     restricted_object_key: Mapped[str] = mapped_column(String(240), nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -98,9 +107,10 @@ class ProofOfDelivery(Base):
 
 class BuyerAcceptance(Base):
     __tablename__ = "buyer_acceptances"
+    __table_args__ = (UniqueConstraint("delivery_id", "version", name="uq_buyer_acceptance_version"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    delivery_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("deliveries.id", ondelete="RESTRICT"), nullable=False, index=True)
     version: Mapped[int] = mapped_column(nullable=False)
     buyer_identity: Mapped[str] = mapped_column(String(80), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False)  # ACCEPTED, PARTIALLY_ACCEPTED, REJECTED
@@ -116,7 +126,7 @@ class DeliveryCorrection(Base):
     __tablename__ = "delivery_corrections"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    delivery_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("deliveries.id", ondelete="RESTRICT"), nullable=False, index=True)
     aggregate_version: Mapped[int] = mapped_column(nullable=False)
     correction_type: Mapped[str] = mapped_column(String(80), nullable=False)
     proposed_changes: Mapped[str] = mapped_column(Text, nullable=False)  # JSON proposed modifications
@@ -172,9 +182,34 @@ class InboxEvent(Base):
 
     source_application: Mapped[str] = mapped_column(String(80), primary_key=True)
     event_id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True, default="00000000-0000-4000-8000-000000000101")
     event_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    aggregate_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    aggregate_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    aggregate_version: Mapped[int | None] = mapped_column(nullable=True)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False)  # RECEIVED, PROCESSED, REJECTED, FAILED
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ExternalAggregateVersion(Base):
+    __tablename__ = "external_aggregate_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "source_application",
+            "aggregate_type",
+            "aggregate_id",
+            name="uq_external_aggregate_version",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    source_application: Mapped[str] = mapped_column(String(80), nullable=False)
+    aggregate_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    aggregate_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    latest_version: Mapped[int] = mapped_column(nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), server_onupdate=func.now())

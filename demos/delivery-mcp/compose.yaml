@@ -4,21 +4,34 @@ x-delivery-demo: &delivery-demo
   build:
     context: .
     dockerfile: Dockerfile
-  env_file:
-    - .env
+  env_file: [.env]
   environment:
-    DELIVERY_DEMO_DATABASE_URL: sqlite+aiosqlite:////data/delivery-demo.db
-  networks:
-    - xyena-backend
+    DELIVERY_DEMO_DATABASE_URL: postgresql+asyncpg://delivery:delivery@delivery-db:5432/delivery
+  networks: [delivery-internal, xyena-backend]
 
 services:
+  delivery-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: delivery
+      POSTGRES_USER: delivery
+      POSTGRES_PASSWORD: delivery
+    volumes: [delivery-db-data:/var/lib/postgresql/data]
+    networks: [delivery-internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivery -d delivery"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   delivery-demo:
     <<: *delivery-demo
     restart: unless-stopped
-    ports:
-      - "8095:8095"
-    volumes:
-      - delivery-demo-data:/data
+    ports: ["8095:8095"]
+    depends_on:
+      delivery-db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health/ready')"]
       interval: 10s
@@ -34,9 +47,11 @@ services:
         condition: service_healthy
 
 networks:
+  delivery-internal:
+    internal: true
   xyena-backend:
     external: true
     name: xyena-core_backend
 
 volumes:
-  delivery-demo-data:
+  delivery-db-data:

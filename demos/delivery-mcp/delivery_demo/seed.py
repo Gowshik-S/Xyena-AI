@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+from .constants import DEMO_TENANT_ID
 from .database import session
 from .models import (
     BuyerAcceptance,
@@ -11,10 +12,6 @@ from .models import (
     InboxEvent,
     ProofOfDelivery,
 )
-
-DEMO_TENANT_ID = "00000000-0000-4000-8000-000000000101"
-DEMO_ORGANIZATION_ID = "00000000-0000-4000-8000-000000000301"
-DEMO_USER_ID = "00000000-0000-4000-8000-000000000201"
 
 
 async def seed_demo_data() -> None:
@@ -38,7 +35,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="TRK-8942-01",
+            tracking_number="XY8942ABCDE1",
             status="DELIVERED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -117,6 +114,21 @@ async def seed_demo_data() -> None:
                 actor="buyer_receiver",
             )
         )
+        db.add(
+            ProofOfDelivery(
+                id=str(uuid4()),
+                delivery_id=d1_id,
+                proof_type="SIGNATURE",
+                restricted_object_key="pod/accepted/8942",
+                content_hash="1" * 64,
+                mime_type="image/png",
+                captured_at=datetime.now(UTC) - timedelta(days=2),
+                verification_status="VERIFIED",
+                verification_method="INDEPENDENT_REVIEW",
+                verifier="delivery_reviewer",
+                security_flags='["SYNTHETIC_DATA"]',
+            )
+        )
 
         # 2. Partial Delivery and Rejections
         d2_id = str(uuid4())
@@ -132,7 +144,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="TRK-8943-02",
+            tracking_number="XY8943ABCDE2",
             status="PARTIALLY_ACCEPTED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -179,6 +191,21 @@ async def seed_demo_data() -> None:
                 actor="buyer_receiver",
             )
         )
+        db.add(
+            ProofOfDelivery(
+                id=str(uuid4()),
+                delivery_id=d2_id,
+                proof_type="PHOTO",
+                restricted_object_key="pod/accepted/8943",
+                content_hash="2" * 64,
+                mime_type="image/jpeg",
+                captured_at=datetime.now(UTC) - timedelta(days=1),
+                verification_status="VERIFIED",
+                verification_method="INDEPENDENT_REVIEW",
+                verifier="delivery_reviewer",
+                security_flags='["SYNTHETIC_DATA"]',
+            )
+        )
 
         # 3. Buyer/Seller/Invoice Mismatch (Shipment #XD-8812 in IN_TRANSIT with warnings)
         d3_id = str(uuid4())
@@ -194,7 +221,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_oceanic_lines",
-            tracking_number="TRK-8812-CN",
+            tracking_number="XY8812ABCDE3",
             status="IN_TRANSIT",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, Pudong District, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, Port Area, NL"}',
@@ -264,7 +291,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="TRK-8944-04",
+            tracking_number="XY8944ABCDE4",
             status="DELIVERED_PENDING_ACCEPTANCE",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
@@ -305,7 +332,7 @@ async def seed_demo_data() -> None:
                 delivery_id=d4_id,
                 proof_type="SIGNATURE",
                 restricted_object_key="pod/forged_sig.png",
-                content_hash="hash_forged_signature_xyz_123",
+                content_hash="f" * 64,
                 mime_type="image/png",
                 captured_at=datetime.now(UTC) - timedelta(days=2),
                 recipient_token="token_sig_01",
@@ -324,7 +351,7 @@ async def seed_demo_data() -> None:
                 delivery_id=d4_id,
                 proof_type="SIGNATURE",
                 restricted_object_key="pod/valid_sig.png",
-                content_hash="hash_valid_signature_abc_789",
+                content_hash="a" * 64,
                 mime_type="image/png",
                 captured_at=datetime.now(UTC) - timedelta(hours=1),
                 recipient_token="token_sig_02",
@@ -349,7 +376,7 @@ async def seed_demo_data() -> None:
             buyer_id="buyer_retail_co",
             buyer_gstin="27BBBBB2222B2Z2",
             carrier_id="carrier_fastfreight",
-            tracking_number="TRK-8945-05",
+            tracking_number="XY8945ABCDE5",
             status="REJECTED",
             ship_from='{"name": "Shanghai Hub Alpha", "address": "Wharf 42, CN"}',
             ship_to='{"name": "Rotterdam Central", "address": "Dock 7, NL"}',
