@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Xyena Delivery - Detail #XD-8812</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary-container": "#271901",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-bright": "#f7f9fb",
+                        "surface-tint": "#565e74",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#d0e1fb",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-primary-fixed": "#131b2e",
+                        "on-secondary-container": "#54647a",
+                        "on-tertiary-container": "#98805d",
+                        "primary": "#000000",
+                        "primary-container": "#131b2e",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "on-surface": "#191c1e",
+                        "outline": "#76777d",
+                        "background": "#f7f9fb",
+                        "on-tertiary-fixed": "#271901",
+                        "on-tertiary-fixed-variant": "#574425",
+                        "on-primary-container": "#7c839b",
+                        "outline-variant": "#c6c6cd",
+                        "secondary-fixed": "#d3e4fe",
+                        "tertiary-fixed": "#fcdeb5",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#505f76",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "on-background": "#191c1e",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "primary-fixed": "#dae2fd",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary": "#000000",
+                        "inverse-surface": "#2d3133",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#dec29a",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#45464d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "row-height-standard": "48px",
+                        "row-height-dense": "32px",
+                        "gutter-table": "12px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "mono-data": ["monospace"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "mono-data": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Thin scrollbar for tables */
+        .thin-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #c6c6cd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen overflow-hidden flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest text-primary flex justify-between items-center h-row-height-standard px-container-padding w-full border-b border-outline-variant z-50">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg text-primary tracking-tighter">Xyena Delivery</span>
+</div>
+<div class="flex items-center gap-4">
+<!-- Search placeholder if on left, but ignoring for brevity in header actions -->
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="sensors">sensors</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low text-primary flex flex-col pt-[64px] pb-4 px-unit w-[240px] border-r border-outline-variant z-40 hidden md:flex shrink-0">
+<div class="px-3 mb-6">
+<div class="font-headline-md text-headline-md text-primary mb-1">Logistics Manager</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">System Administrator</div>
+</div>
+<div class="flex-1 space-y-1 px-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all duration-150 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-primary font-bold bg-secondary-container/10 transition-all duration-150 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+                    Deliveries
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all duration-150 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+                    Admin Controls
+                </a>
+</div>
+<div class="mt-auto space-y-1 px-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all duration-150 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="dynamic_form">dynamic_form</span>
+                    Connection Status
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-secondary-container hover:bg-surface-container-high transition-all duration-150 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-surface p-container-padding thin-scrollbar">
+<!-- Exception Banner -->
+<div class="mb-6 bg-error-container/20 border-l-[4px] border-error rounded-r-DEFAULT p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-error" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-background">Warning: Invoice Mismatch Detected</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Declared value does not match ERP record.</p>
+</div>
+</div>
+<!-- Header & Breadcrumbs -->
+<div class="flex justify-between items-end mb-6 pb-4 border-b border-outline-variant">
+<div>
+<nav class="flex text-on-surface-variant font-label-md text-label-md mb-2">
+<a class="hover:text-primary" href="#">Deliveries</a>
+<span class="mx-2">/</span>
+<span class="text-primary">#XD-8812</span>
+</nav>
+<div class="flex items-center gap-4">
+<h1 class="font-headline-lg text-headline-lg text-primary">Delivery #XD-8812</h1>
+<span class="px-2 py-1 rounded bg-secondary-container/20 text-secondary font-label-md text-label-md border border-secondary-container">IN TRANSIT</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded hover:bg-surface-container-low text-primary font-label-md text-label-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit_document">edit_document</span>
+                        Add Correction
+                    </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded hover:bg-primary/90 font-label-md text-label-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+                        Export Audit
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+<!-- Left Column (Main Data) -->
+<div class="xl:col-span-8 space-y-6">
+<!-- Shipment Header Info -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+<div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Declared Value</div>
+<div class="font-mono-data text-mono-data text-primary text-lg font-bold">$1,245,000.00</div>
+<div class="font-body-sm text-body-sm text-error mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="error">error</span> ERP: $1,250,000.00
+                            </div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+<div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Ship From</div>
+<div class="font-body-md text-body-md text-primary font-semibold">Shanghai Hub Alpha</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate">Wharf 42, Pudong District, CN</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4">
+<div class="font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wider">Ship To</div>
+<div class="font-body-md text-body-md text-primary font-semibold">Rotterdam Central</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1 truncate">Dock 7, Port Area, NL</div>
+</div>
+</section>
+<!-- Item Reconciliation Table -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded flex flex-col">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-sm text-headline-sm text-primary">Item Reconciliation</h2>
+<div class="font-label-md text-label-md text-on-surface-variant">Last updated: 14:32 UTC</div>
+</div>
+<div class="overflow-x-auto thin-scrollbar">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-surface-container-low font-label-md text-label-md text-on-surface-variant uppercase">
+<th class="p-3 border-b border-outline-variant font-semibold sticky left-0 bg-surface-container-low">SKU / Desc</th>
+<th class="p-3 border-b border-outline-variant font-semibold text-right">Ordered</th>
+<th class="p-3 border-b border-outline-variant font-semibold text-right">Dispatched</th>
+<th class="p-3 border-b border-outline-variant font-semibold text-right">Delivered</th>
+<th class="p-3 border-b border-outline-variant font-semibold">Flow Widget</th>
+</tr>
+</thead>
+<tbody class="font-mono-data text-mono-data text-on-background">
+<tr class="hover:bg-surface-bright transition-colors border-b border-outline-variant group">
+<td class="p-3 sticky left-0 bg-surface-container-lowest group-hover:bg-surface-bright transition-colors">
+<div class="font-semibold text-primary">TX-9021A</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate w-48 font-sans">Industrial Turbine Blade</div>
+</td>
+<td class="p-3 text-right">400</td>
+<td class="p-3 text-right">400</td>
+<td class="p-3 text-right">398</td>
+<td class="p-3 w-48">
+<div class="h-2 w-full bg-surface-container-high rounded flex overflow-hidden">
+<div class="bg-primary h-full" style="width: 99.5%"></div>
+<div class="bg-error h-full" style="width: 0.5%"></div>
+</div>
+<div class="flex justify-between mt-1 text-[10px] text-on-surface-variant font-sans">
+<span>Ord: 400</span>
+<span class="text-error">Short: 2</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Right Column (Audit & Context) -->
+<div class="xl:col-span-4 space-y-6">
+<!-- Chronological Event Timeline -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded p-5">
+<h2 class="font-headline-sm text-headline-sm text-primary mb-4">Immutable Audit Trail</h2>
+<div class="relative pl-4 space-y-6 before:absolute before:inset-y-0 before:left-5 before:w-px before:bg-outline-variant">
+<!-- Timeline Item -->
+<div class="relative">
+<div class="absolute -left-6 bg-surface-container-lowest p-0.5">
+<div class="w-3 h-3 rounded-full bg-primary border-2 border-surface-container-lowest"></div>
+</div>
+<div class="font-label-md text-label-md text-on-surface-variant mb-0.5">Oct 24, 08:00 UTC</div>
+<div class="font-body-md text-body-md text-primary font-semibold">Created</div>
+<div class="font-mono-data text-[11px] text-on-surface-variant mt-1">Hash: 8f4e...9a2b</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</body></html>

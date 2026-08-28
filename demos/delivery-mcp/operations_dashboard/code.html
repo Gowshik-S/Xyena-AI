@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Operations Dashboard - Xyena Delivery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .pulse-live {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(.8); opacity: 0.5; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        
+        /* Thin Scrollbar for data density */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f7f9fb; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c6c6cd; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #76777d; 
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary-container": "#271901",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-bright": "#f7f9fb",
+                      "surface-tint": "#565e74",
+                      "error": "#ba1a1a",
+                      "secondary-container": "#d0e1fb",
+                      "surface": "#f7f9fb",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-primary-fixed": "#131b2e",
+                      "on-secondary-container": "#54647a",
+                      "on-tertiary-container": "#98805d",
+                      "primary": "#000000",
+                      "primary-container": "#131b2e",
+                      "surface-variant": "#e0e3e5",
+                      "surface-container-high": "#e6e8ea",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "on-surface": "#191c1e",
+                      "outline": "#76777d",
+                      "background": "#f7f9fb",
+                      "on-tertiary-fixed": "#271901",
+                      "on-tertiary-fixed-variant": "#574425",
+                      "on-primary-container": "#7c839b",
+                      "outline-variant": "#c6c6cd",
+                      "secondary-fixed": "#d3e4fe",
+                      "tertiary-fixed": "#fcdeb5",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary": "#505f76",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#d8dadc",
+                      "on-background": "#191c1e",
+                      "inverse-primary": "#bec6e0",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "primary-fixed": "#dae2fd",
+                      "primary-fixed-dim": "#bec6e0",
+                      "tertiary": "#000000",
+                      "inverse-surface": "#2d3133",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "surface-container": "#eceef0",
+                      "tertiary-fixed-dim": "#dec29a",
+                      "on-error": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-surface-variant": "#45464d",
+                      /* Custom status colors mapped to system colors where possible, or specific hex for logistics density */
+                      "status-created": "#505f76", /* secondary */
+                      "status-ready": "#000000", /* primary */
+                      "status-dispatched": "#565e74", /* surface-tint */
+                      "status-transit": "#7c839b", /* on-primary-container */
+                      "status-out": "#131b2e", /* primary-container */
+                      "warning": "#eab308" /* standard amber for warning */
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "row-height-standard": "48px",
+                      "row-height-dense": "32px",
+                      "gutter-table": "12px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "mono-data": [
+                              "monospace"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "mono-data": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden flex h-screen">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-surface-container-highest text-primary dark:text-primary-fixed fixed left-0 top-0 h-full w-[240px] z-40 border-r border-outline-variant dark:border-outline flex flex-col pt-[64px] pb-4 px-unit transition-all duration-150 ease-in-out">
+<div class="px-3 mb-6 mt-4 flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant shrink-0">
+<img class="w-full h-full object-cover" data-alt="A highly detailed professional corporate headshot of a logistics manager in a modern, brightly lit office environment. Crisp white background, sharp focus, professional attire. The overall tone is authoritative, clean, and high-tech, fitting a high-end ERP system context. Soft, even lighting, 8k resolution, photorealistic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdTvYQomTLvrifXW8avBsND7333ltl6df-5-iDpA6PRxDfsiVTwnu-6S5cvjNtUAO8H3_E_WvyATHA6T5w7gc4nOkiuXN9lDFtdrpL8r2nnwyPWjNidclJFV2TE8hhMCpSjlRpuxZoM12du8x8MF7zujY7fMx2qW3zOxXJir3N_LHeuUa0xQb3G98_nKTjt74GFI2-WK0319V60H9wUw_Lj8AN6pVqW-XuJYwELGpvP1rXwP_suFhOEQ"/>
+</div>
+<div>
+<div class="font-headline-sm text-headline-sm text-on-surface truncate" title="Logistics Manager">Logistics Manager</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate" title="System Administrator">System Administrator</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto space-y-1">
+<!-- Active Tab: Dashboard -->
+<a class="flex items-center px-3 py-2 rounded-DEFAULT bg-secondary-container/10 text-primary dark:text-primary-fixed font-bold hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-DEFAULT text-on-secondary-container dark:text-on-secondary-fixed-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]" data-icon="local_shipping">local_shipping</span>
+<span class="font-label-md text-label-md">Deliveries</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-DEFAULT text-on-secondary-container dark:text-on-secondary-fixed-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="font-label-md text-label-md">Admin Controls</span>
+</a>
+</div>
+<div class="mt-auto border-t border-outline-variant pt-2 space-y-1">
+<a class="flex items-center px-3 py-2 rounded-DEFAULT text-on-secondary-container dark:text-on-secondary-fixed-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]" data-icon="dynamic_form">dynamic_form</span>
+<span class="font-label-md text-label-md">Connection Status</span>
+</a>
+<a class="flex items-center px-3 py-2 rounded-DEFAULT text-on-secondary-container dark:text-on-secondary-fixed-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-all duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mr-3 text-[20px]" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col ml-[240px] w-[calc(100%-240px)] h-full">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-inverse-surface border-b border-outline-variant dark:border-outline flex justify-between items-center h-row-height-standard px-container-padding w-full shrink-0 z-50">
+<div class="flex items-center space-x-4">
+<div class="font-headline-lg text-headline-lg text-primary dark:text-primary-fixed tracking-tighter">Xyena Delivery</div>
+<div class="relative ml-8">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="pl-8 pr-3 py-1 bg-surface-container-low border border-outline-variant rounded-DEFAULT font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 w-64 transition-all" placeholder="Search Shipment ID, Waybill..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-1">
+<div class="flex items-center mr-6 text-on-surface-variant">
+<div class="relative flex items-center justify-center w-3 h-3 mr-2">
+<div class="absolute w-2 h-2 rounded-full bg-error"></div>
+<div class="absolute w-2 h-2 rounded-full bg-error pulse-live"></div>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Last updated: 2 seconds ago (Live SSE)</span>
+</div>
+<button class="p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-on-surface-variant rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-on-surface-variant rounded-full transition-colors duration-200 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface-container-lowest"></span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-on-surface-variant rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<main class="flex-1 overflow-y-auto bg-surface-bright p-container-padding">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-1">Operations Overview</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Real-time logistics audit and status aggregation.</p>
+</div>
+<div class="flex space-x-2">
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px]">download</span> Export Audit
+                    </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-DEFAULT font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px]">add</span> New Dispatch
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter-table auto-rows-[minmax(120px,auto)]">
+<!-- Status Counts Grid (Spans 8 cols) -->
+<div class="col-span-12 xl:col-span-8 grid grid-cols-5 gap-unit">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">CREATED</span>
+<span class="material-symbols-outlined text-outline-variant text-[16px]">inventory_2</span>
+</div>
+<div class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 group-hover:text-status-created transition-colors">1,402</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">READY TO DISPATCH</span>
+<span class="material-symbols-outlined text-outline-variant text-[16px]">conveyor_belt</span>
+</div>
+<div class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 group-hover:text-status-ready transition-colors">845</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">DISPATCHED</span>
+<span class="material-symbols-outlined text-outline-variant text-[16px]">flight_takeoff</span>
+</div>
+<div class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 group-hover:text-status-dispatched transition-colors">3,291</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-3 flex flex-col justify-between group hover:border-outline transition-colors">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">IN TRANSIT</span>
+<span class="material-symbols-outlined text-outline-variant text-[16px]">local_shipping</span>
+</div>
+<div class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 group-hover:text-status-transit transition-colors">8,910</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-3 flex flex-col justify-between group hover:border-outline transition-colors border-b-2 border-b-status-out">
+<div class="flex justify-between items-start">
+<span class="font-label-md text-label-md text-on-surface-variant">OUT FOR DELIVERY</span>
+<span class="material-symbols-outlined text-status-out text-[16px]">route</span>
+</div>
+<div class="font-mono-data text-[32px] leading-tight text-on-surface mt-4 text-status-out">1,204</div>
+</div>
+</div>
+<!-- Value Summary (Spans 4 cols) -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-4 flex flex-col row-span-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px]">account_balance</span>
+                        Value Summary (24h)
+                    </h3>
+<div class="flex-1 flex flex-col justify-center space-y-4">
+<div>
+<div class="flex justify-between text-label-md font-label-md mb-1">
+<span class="text-on-surface">Total Accepted Value</span>
+<span class="font-mono-data text-primary">€12.4M</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[85%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-md font-label-md mb-1">
+<span class="text-on-surface-variant">Rejected / Partial Value</span>
+<span class="font-mono-data text-error">€450k</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-error h-full w-[15%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Critical Alerts (Spans 4 cols, row 2) -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-error/30 rounded-DEFAULT overflow-hidden row-span-2 flex flex-col">
+<div class="bg-error-container/20 px-4 py-3 border-b border-error/20 flex justify-between items-center">
+<h3 class="font-headline-sm text-headline-sm text-on-error-container flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px] text-error">warning</span>
+                            Critical Alerts
+                        </h3>
+<span class="bg-error text-on-error font-mono-data text-[10px] px-2 py-0.5 rounded-full">14 ACTIVE</span>
+</div>
+<div class="p-0 flex-1 overflow-y-auto">
+<ul class="divide-y divide-outline-variant/30">
+<!-- Alert Item -->
+<li class="p-3 hover:bg-surface-container-low transition-colors cursor-pointer border-l-4 border-error">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-label-md text-on-surface">POD Verification Failure</span>
+<span class="font-mono-data text-[10px] text-on-surface-variant">2m ago</span>
+</div>
+<div class="font-mono-data text-body-sm text-on-surface-variant mb-1">Shipment #XD-8812</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Signature mismatch detected at Drop Zone Alpha.</p>
+</li>
+<!-- Alert Item -->
+<li class="p-3 hover:bg-surface-container-low transition-colors cursor-pointer border-l-4 border-warning">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-label-md text-on-surface">Invoice Mismatch</span>
+<span class="font-mono-data text-[10px] text-on-surface-variant">15m ago</span>
+</div>
+<div class="font-mono-data text-body-sm text-on-surface-variant mb-1">Shipment #XD-9041</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Declared value €45,000 exceeds manifest bound €40,000.</p>
+</li>
+<!-- Alert Item -->
+<li class="p-3 hover:bg-surface-container-low transition-colors cursor-pointer border-l-4 border-error">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-md text-label-md text-on-surface">Temperature Excursion</span>
+<span class="font-mono-data text-[10px] text-on-surface-variant">42m ago</span>
+</div>
+<div class="font-mono-data text-body-sm text-on-surface-variant mb-1">Container #CONT-11A</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Sensor ST-04 reported +4°C deviation for 12 mins.</p>
+</li>
+</ul>
+</div>
+</div>
+<!-- Aging Deliveries Chart (Spans 4 cols, row 2) -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-4 row-span-2 flex flex-col">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px]">schedule</span>
+                        Aging Deliveries (Late)
+                    </h3>
+<div class="flex-1 flex flex-col justify-end space-y-4 pb-2">
+<div class="relative flex items-center">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">1 Day</div>
+<div class="flex-1 h-6 bg-surface-container-high rounded-sm overflow-hidden flex items-center relative">
+<div class="bg-warning h-full w-[65%] rounded-sm"></div>
+<span class="absolute left-2 font-mono-data text-[10px] text-on-surface mix-blend-difference">342</span>
+</div>
+</div>
+<div class="relative flex items-center">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">3 Days</div>
+<div class="flex-1 h-6 bg-surface-container-high rounded-sm overflow-hidden flex items-center relative">
+<div class="bg-error/70 h-full w-[25%] rounded-sm"></div>
+<span class="absolute left-2 font-mono-data text-[10px] text-on-surface mix-blend-difference">89</span>
+</div>
+</div>
+<div class="relative flex items-center">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant text-right pr-2">5+ Days</div>
+<div class="flex-1 h-6 bg-surface-container-high rounded-sm overflow-hidden flex items-center relative">
+<div class="bg-error h-full w-[10%] rounded-sm"></div>
+<span class="absolute left-2 font-mono-data text-[10px] text-on-surface mix-blend-difference">14</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-outline-variant/50 text-right">
+<a class="font-label-md text-label-md text-primary hover:underline flex items-center justify-end" href="#">
+                            View Aging Report <span class="material-symbols-outlined ml-1 text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Live Events Feed (Spans 4 cols, row 2) -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT overflow-hidden row-span-2 flex flex-col relative">
+<div class="absolute inset-0 z-0 opacity-10 pointer-events-none">
+<!-- Abstract data visualization background for the live feed -->
+<div class="w-full h-full bg-cover bg-center" data-alt="A subtle, minimalist digital pattern representing data streams or logistics pathways. Light mode, pristine white and light grey background with faint, glowing lines tracking horizontally and vertically, resembling a high-tech supply chain map. Extremely low contrast, designed to sit quietly behind text." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD8eps--Jh7BclAFS4ldB_etWV2JrzMv-2IEQj4hCQ_Vve7iQygZRBOSAjgyDA5H0H8taQFThSaKA-FH0MGU9JkaDzlMpc8c-uaXyKAHHDlixjtre2KsKuGER34qBy8whgs-9S0P9SRFQV10ePerNc22xjvCWG9mVFQ56tSyvcNG4E8lcZW5KCOTxq8hnvBUR3X6LyW8vdRk32A6ZTcTMKTnkfc5qcf1f5q7srughODCJ6KR8TwmDYJgQ')"></div>
+</div>
+<div class="px-4 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest/80 backdrop-blur-sm z-10">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center">
+<span class="material-symbols-outlined mr-2 text-[18px]">feed</span>
+                            Live Events Feed
+                        </h3>
+<div class="flex items-center">
+<div class="w-2 h-2 rounded-full bg-error pulse-live mr-1.5"></div>
+<span class="font-label-md text-label-md text-error tracking-widest">LIVE</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-4 z-10 bg-surface-container-lowest/90 backdrop-blur-sm">
+<!-- Event Stepper Item -->
+<div class="relative pl-6">
+<div class="absolute left-1.5 top-1.5 bottom-[-16px] w-[1px] bg-outline-variant"></div>
+<div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-primary border-2 border-surface-container-lowest shadow-sm z-10"></div>
+<div class="font-mono-data text-[10px] text-on-surface-variant mb-0.5">Just now</div>
+<div class="font-body-sm text-body-sm text-on-surface"><span class="font-mono-data font-semibold">#XD-9402</span> Dispatched from Hub D</div>
+</div>
+<!-- Event Stepper Item -->
+<div class="relative pl-6">
+<div class="absolute left-1.5 top-1.5 bottom-[-16px] w-[1px] bg-outline-variant"></div>
+<div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-surface-tint border-2 border-surface-container-lowest shadow-sm z-10"></div>
+<div class="font-mono-data text-[10px] text-on-surface-variant mb-0.5">45s ago</div>
+<div class="font-body-sm text-body-sm text-on-surface">POD Captured for <span class="font-mono-data font-semibold">#XD-8812</span></div>
+<div class="mt-1 bg-surface-container-low p-2 rounded-sm text-xs font-mono-data text-on-surface-variant">Signature Hash: 0x9a8b...f12c</div>
+</div>
+<!-- Event Stepper Item -->
+<div class="relative pl-6">
+<div class="absolute left-1.5 top-1.5 bottom-[-16px] w-[1px] bg-outline-variant"></div>
+<div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-status-created border-2 border-surface-container-lowest shadow-sm z-10"></div>
+<div class="font-mono-data text-[10px] text-on-surface-variant mb-0.5">1m ago</div>
+<div class="font-body-sm text-body-sm text-on-surface">New Manifest <span class="font-mono-data font-semibold">#MN-2201</span> Created</div>
+</div>
+<!-- Event Stepper Item (End) -->
+<div class="relative pl-6">
+<div class="absolute left-0 top-1 w-3 h-3 rounded-full bg-surface-variant border-2 border-surface-container-lowest shadow-sm z-10"></div>
+<div class="font-mono-data text-[10px] text-on-surface-variant mb-0.5">2m ago</div>
+<div class="font-body-sm text-body-sm text-on-surface">Vehicle V-901 Check-in successful</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
