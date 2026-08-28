@@ -101,6 +101,7 @@ def main() -> None:
         "XYENA_OTEL_SERVICE_NAMESPACE": "xyena",
         "XYENA_OTEL_EXPORTER_OTLP_ENDPOINT": "",
         "XYENA_EVENT_WEBHOOK_URL": "",
+        "DEMO_UI_TOKEN": "xyena-demo",
         "XYENA_MCP_CONTROL_URL": "http://mcp-server:8081",
         "BANK_DEMO_DATABASE_URL": "postgresql+asyncpg://bank_app:${BANK_DB_PASSWORD}@postgres:5432/bank_demo",
         "BANK_DEMO_MCP_TOKEN": bank_mcp_token,

@@ -1,4 +1,5 @@
 const byId = (id) => document.getElementById(id);
+const DEMO_UI_TOKEN = "xyena-demo";
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 const money = (value) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value || 0));
 const date = (value) => value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
@@ -117,4 +118,6 @@ async function loadData(token, automatic = false) {
 byId("accessForm")?.addEventListener("submit", (event) => { event.preventDefault(); loadData(byId("token").value); });
 byId("disconnect")?.addEventListener("click", () => { sessionStorage.removeItem("xyena-funder-ui-token"); location.reload(); });
 mountSidebar(); renderTools();
-const saved = sessionStorage.getItem("xyena-funder-ui-token"); if (saved) loadData(saved, true);
+const saved = sessionStorage.getItem("xyena-funder-ui-token");
+if (byId("token")) byId("token").value = saved || DEMO_UI_TOKEN;
+if (saved) loadData(saved, true);

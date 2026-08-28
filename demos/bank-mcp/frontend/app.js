@@ -19,6 +19,7 @@ const tools = [
   ["bank.holds.place", "Privileged · Guardian approval"],
   ["bank.holds.release", "Privileged · Guardian approval"],
 ];
+const DEMO_UI_TOKEN = "xyena-demo";
 
 const byId = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
@@ -172,7 +173,7 @@ byId("disconnectButton")?.addEventListener("click", () => {
 });
 
 const savedToken = sessionStorage.getItem("xyena-bank-demo-ui-token");
+if (byId("token")) byId("token").value = savedToken || DEMO_UI_TOKEN;
 if (savedToken) {
-  byId("token").value = savedToken;
   loadData(savedToken, true);
 }

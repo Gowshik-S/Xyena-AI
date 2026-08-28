@@ -223,6 +223,7 @@ services:
     restart: unless-stopped
     environment:
       BANK_DEMO_DATABASE_URL: postgresql+asyncpg://bank_app:${BANK_DB_PASSWORD}@postgres:5432/bank_demo
+      BANK_DEMO_UI_TOKEN: ${DEMO_UI_TOKEN:-xyena-demo}
     ports: ["127.0.0.1:8090:8090"]
     depends_on:
       db-provision:
@@ -253,6 +254,7 @@ services:
     restart: unless-stopped
     environment:
       ERP_DEMO_DATABASE_URL: postgresql+asyncpg://erp_app:${ERP_DB_PASSWORD}@postgres:5432/erp_demo
+      ERP_DEMO_UI_TOKEN: ${DEMO_UI_TOKEN:-xyena-demo}
     ports: ["127.0.0.1:8092:8092"]
     depends_on:
       db-provision:
@@ -285,6 +287,7 @@ services:
     restart: unless-stopped
     environment:
       FUNDER_DEMO_DATABASE_URL: postgresql+asyncpg://funder_app:${FUNDER_DB_PASSWORD}@postgres:5432/funder_demo
+      FUNDER_DEMO_UI_TOKEN: ${DEMO_UI_TOKEN:-xyena-demo}
     ports: ["127.0.0.1:8094:8094"]
     depends_on:
       db-provision:
@@ -315,6 +318,7 @@ services:
     restart: unless-stopped
     environment:
       LEDGER_DEMO_DATABASE_URL: postgresql+asyncpg://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ledger_demo
+      LEDGER_DEMO_UI_TOKEN: ${DEMO_UI_TOKEN:-xyena-demo}
     ports: ["127.0.0.1:8096:8096"]
     depends_on:
       db-provision:

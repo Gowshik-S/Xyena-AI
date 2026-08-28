@@ -6,6 +6,7 @@ const tools = [
   ["erp.invoice_matches.get", "Three-way match evidence"],
   ["erp.invoice_acceptance.get", "Buyer acceptance evidence"],
 ];
+const DEMO_UI_TOKEN = "xyena-demo";
 const byId = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
@@ -123,4 +124,6 @@ async function loadData(token, automatic = false) {
 renderTools();
 byId("accessForm")?.addEventListener("submit", (event) => { event.preventDefault(); loadData(byId("token").value); });
 byId("disconnect")?.addEventListener("click", () => { sessionStorage.removeItem("xyena-erp-ui-token"); window.location.reload(); });
-const savedToken = sessionStorage.getItem("xyena-erp-ui-token"); if (savedToken) { byId("token").value = savedToken; loadData(savedToken, true); }
+const savedToken = sessionStorage.getItem("xyena-erp-ui-token");
+if (byId("token")) byId("token").value = savedToken || DEMO_UI_TOKEN;
+if (savedToken) loadData(savedToken, true);
