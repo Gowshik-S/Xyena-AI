@@ -30,6 +30,14 @@ const judgeScenarios = [
   },
 ]
 
+const documentStages = [
+  { id: 'upload', actor: 'Upload Gateway', detail: 'Validate PDF signature, size and page boundary.' },
+  { id: 'intake', actor: 'Intake Agent', detail: 'Untrusted evidence received. Explicit independent verification is required.' },
+  { id: 'defense', actor: 'Document Defense', detail: 'Detect instruction manipulation and active PDF content.' },
+  { id: 'source', actor: 'Guardian + GST MCP', detail: 'If safe, authorize read tools and retrieve the authoritative invoice.' },
+  { id: 'decision', actor: 'Verification Policy', detail: 'Compare claims and issue the deterministic result.' },
+]
+
 const services = [
   { id: 'api', name: 'Xyena Core API', role: 'Agent sessions and orchestration', endpoint: '/live/api' },
   { id: 'guardian', name: 'Guardian', role: 'Independent action control', endpoint: '/live/guardian' },
@@ -74,6 +82,7 @@ function LiveDemo() {
   const [pdfScan, setPdfScan] = useState(null)
   const [pdfScanning, setPdfScanning] = useState(false)
   const [pdfError, setPdfError] = useState('')
+  const [pdfProgress, setPdfProgress] = useState([])
   const fileInput = useRef(null)
   const [clock, setClock] = useState(new Date())
   const mounted = useRef(false)
@@ -211,6 +220,7 @@ function LiveDemo() {
   const acceptPdf = (file) => {
     setPdfError('')
     setPdfScan(null)
+    setPdfProgress([])
     if (!file) return
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       setPdfFile(null)
@@ -225,18 +235,6 @@ function LiveDemo() {
     setPdfFile(file)
   }
 
-  const loadMaliciousSample = async () => {
-    setPdfError('')
-    try {
-      const response = await fetch('/demo/malicious-invoice-injection.pdf', { cache: 'no-store' })
-      if (!response.ok) throw new Error('The sample PDF could not be loaded.')
-      const blob = await response.blob()
-      acceptPdf(new File([blob], 'malicious-invoice-injection.pdf', { type: 'application/pdf' }))
-    } catch (sampleError) {
-      setPdfError(sampleError.message || 'The sample PDF could not be loaded.')
-    }
-  }
-
   const scanPdf = async (event) => {
     event?.preventDefault()
     if (!pdfFile || pdfScanning) {
@@ -246,7 +244,14 @@ function LiveDemo() {
     setPdfScanning(true)
     setPdfError('')
     setPdfScan(null)
+    setPdfProgress(documentStages.map((step, index) => ({ ...step, state: index === 0 ? 'active' : 'queued' })))
     addEvent('Document defense', 'checking', `Scanning ${pdfFile.name} as untrusted evidence`)
+    const progressTimers = documentStages.slice(1, 4).map((_, index) => window.setTimeout(() => {
+      setPdfProgress((current) => current.map((step, stepIndex) => ({
+        ...step,
+        state: stepIndex < index + 1 ? 'complete' : stepIndex === index + 1 ? 'active' : 'queued',
+      })))
+    }, 450 + index * 650))
     try {
       const response = await fetch('/live/api/demo/scan-pdf', {
         method: 'POST',
@@ -268,11 +273,17 @@ function LiveDemo() {
       }
       const report = await response.json()
       setPdfScan(report)
+      setPdfProgress(documentStages.map((step) => ({
+        ...step,
+        state: step.id === 'source' && report.tool_calls_executed === 0 ? 'stopped' : 'complete',
+      })))
       addEvent('Document defense', report.flagged ? 'failed' : 'verified', `${report.classification} · ${report.findings.length} indicators`)
     } catch (scanError) {
       setPdfError(scanError.message || 'The PDF scan could not be completed.')
+      setPdfProgress((current) => current.map((step) => ({ ...step, state: step.state === 'active' ? 'failed' : step.state })))
       addEvent('Document defense', 'failed', scanError.message || 'Scan failed')
     } finally {
+      progressTimers.forEach((timer) => window.clearTimeout(timer))
       setPdfScanning(false)
     }
   }
@@ -292,6 +303,38 @@ function LiveDemo() {
     { label: 'MCP + Guardian', done: proof?.mcp_gateway?.status === 'verified' && proof?.guardian?.status === 'verified' },
     { label: 'Model inference', done: proof?.model?.status === 'verified' },
   ]
+  const documentDecision = pdfScan ? ({
+    BLOCKED_PROMPT_INJECTION: {
+      title: 'PROMPT INJECTION BLOCKED',
+      detail: 'Instruction manipulation was quarantined before model context or MCP execution.',
+    },
+    AMOUNT_MISMATCH: {
+      title: 'AMOUNT MISMATCH FLAGGED',
+      detail: 'The document was safe to inspect, but its amount disagreed with the authoritative GST source.',
+    },
+    VERIFIED_SOURCE_MATCH: {
+      title: 'VERIFIED AGAINST GST SOURCE',
+      detail: 'Guardian authorized the GST reads and every extracted invoice claim matched the source record.',
+    },
+    REVIEW_REQUIRED: {
+      title: 'REVIEW REQUIRED',
+      detail: 'The document could not be conclusively matched to an authoritative source.',
+    },
+    NO_INJECTION_FOUND: {
+      title: 'SOURCE CHECK PENDING',
+      detail: 'No injection was detected, but clean content is not trusted until source verification completes.',
+    },
+  }[pdfScan.classification]) : null
+  const activeDocumentStage = pdfProgress.find((step) => step.state === 'active')
+  const liveDocumentActivity = activeDocumentStage?.id === 'source'
+    ? {
+        title: 'Guardian is evaluating a real GST MCP read',
+        detail: 'gst.invoices.search · request in flight · source data remains hidden until the signed response returns',
+      }
+    : {
+        title: 'Document Defense is analyzing bounded evidence',
+        detail: 'PDF structure + instruction-manipulation rules · no document text sent to the model',
+      }
 
   return (
     <div className="live-demo" id="top">
@@ -537,19 +580,18 @@ function LiveDemo() {
           <div className="document-lab__header">
             <div>
               <p className="lab-index">02 / ADVERSARIAL DOCUMENT TEST</p>
-              <h2>Upload a PDF that tries to control the agent.</h2>
-              <p>Xyena extracts bounded text without sending it to the model, detects instruction manipulation, quarantines the content and executes zero tools.</p>
+              <h2>Upload an invoice. Watch Xyena verify or resist.</h2>
+              <p>Every uploaded document begins untrusted until independently verified. Injection is quarantined before tools; clean invoice claims are checked through Guardian and GST MCP.</p>
             </div>
             <div className="document-route"><small>Upload and test here</small><code>app.gowshik.in/live-demo<br />↓ Document security lab</code></div>
           </div>
 
           <div className="document-walkthrough">
             <ol>
-              <li><span>1</span><p><strong>Load the supplied attack PDF</strong><small>Or choose your own PDF under 2 MB and 8 pages.</small></p></li>
-              <li><span>2</span><p><strong>Run the bounded scan</strong><small>The file is parsed as untrusted data, never as instructions.</small></p></li>
-              <li><span>3</span><p><strong>Inspect the block evidence</strong><small>Confirm flagged phrases, zero tools and no model forwarding.</small></p></li>
+              <li><span>1</span><p><strong>Choose your test PDF</strong><small>Use a document supplied separately or your own PDF under 2 MB.</small></p></li>
+              <li><span>2</span><p><strong>Verify the evidence</strong><small>Injection stops immediately; clean claims continue to GST MCP.</small></p></li>
+              <li><span>3</span><p><strong>Inspect the decision</strong><small>See source comparisons, tool calls, flags and final risk.</small></p></li>
             </ol>
-            <a href="/demo/malicious-invoice-injection.pdf" download>Download sample PDF ↓</a>
           </div>
 
           <form className="pdf-upload" onSubmit={scanPdf}>
@@ -568,45 +610,88 @@ function LiveDemo() {
             >
               <span className="pdf-glyph" aria-hidden="true">PDF</span>
               <div>
-                <small>Untrusted evidence input</small>
+                <small>Evidence input · untrusted until verified</small>
                 <strong>{pdfFile?.name || 'No PDF selected'}</strong>
-                <p>{pdfFile ? `${Math.ceil(pdfFile.size / 1024)} KB ready for bounded inspection` : 'Drop a PDF here, choose a file, or load the supplied malicious sample.'}</p>
+                <p>{pdfFile ? `${Math.ceil(pdfFile.size / 1024)} KB ready for bounded inspection` : 'Drop a PDF here or choose a file supplied separately.'}</p>
               </div>
               <div className="pdf-file-actions">
                 <button type="button" onClick={() => fileInput.current?.click()}>Choose PDF</button>
-                <button type="button" onClick={loadMaliciousSample}>Load attack sample</button>
               </div>
             </div>
             <div className="pdf-scan-action">
-              <p><span>Policy</span> Max 2 MB · Max 8 pages · No OCR · No model context · No tool execution</p>
-              <button type="submit" disabled={!pdfFile || pdfScanning}>{pdfScanning ? 'Scanning document…' : 'Scan as untrusted evidence'}</button>
+              <p><span>Policy</span> Max 2 MB · Max 8 pages · No OCR · No model context · injection stops before tools</p>
+              <button type="submit" disabled={!pdfFile || pdfScanning}>{pdfScanning ? 'Verifying document…' : 'Verify document evidence'}</button>
             </div>
           </form>
+
+          {pdfProgress.length > 0 && (
+            <div className="agent-handoff" aria-live="polite">
+              <header><small>Live evidence route</small><strong>Agent-to-agent verification progress</strong></header>
+              <ol>
+                {pdfProgress.map((step, index) => (
+                  <li className={`is-${step.state}`} key={step.id}>
+                    <span>{step.state === 'complete' ? '✓' : step.state === 'stopped' ? '■' : String(index + 1).padStart(2, '0')}</span>
+                    <div><strong>{step.actor}</strong><p>{step.detail}</p></div>
+                    <em>{step.state}</em>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {pdfScanning && (
+            <div className="live-tool-inflight" role="status" aria-live="polite">
+              <span aria-hidden="true" />
+              <div>
+                <small>Live execution · waiting for backend receipt</small>
+                <strong>{liveDocumentActivity.title}</strong>
+                <code>{liveDocumentActivity.detail}</code>
+              </div>
+              <em>ANALYZING</em>
+            </div>
+          )}
 
           {pdfError && <div className="trace-error" role="status"><strong>Document scan</strong><span>{pdfError}</span></div>}
 
           {pdfScan && (
             <div className={`pdf-report ${pdfScan.flagged ? 'is-flagged' : 'is-clear'}`}>
               <header>
-                <div><small>Document decision</small><strong>{pdfScan.flagged ? 'FLAGGED & QUARANTINED' : 'NO INJECTION FOUND'}</strong></div>
-                <p>{pdfScan.flagged ? 'The document attempted to influence agent authority. Its text was blocked from model and tool context.' : 'No known prompt-injection phrase was found. This is not a guarantee that the document is trustworthy.'}</p>
+                <div><small>Document decision</small><strong>{documentDecision?.title}</strong></div>
+                <p>{documentDecision?.detail}</p>
                 <span><small>Risk score</small><b>{pdfScan.risk_score}</b><em>/100</em></span>
               </header>
               <div className="pdf-safety-facts">
-                <article><span>0</span><p><strong>Tools executed</strong><small>Document text cannot initiate MCP calls</small></p></article>
+                <article><span>{pdfScan.tool_calls_executed}</span><p><strong>Tools executed</strong><small>{pdfScan.tool_calls_executed ? 'Guardian-approved GST source reads' : 'Stopped before MCP execution'}</small></p></article>
                 <article><span>NO</span><p><strong>Sent to model</strong><small>Scanning is deterministic and bounded</small></p></article>
                 <article><span>NO</span><p><strong>Business state changed</strong><small>The upload remains a security test</small></p></article>
                 <article><span>{pdfScan.findings.length}</span><p><strong>Indicators found</strong><small>{pdfScan.reason_codes.join(' · ') || 'None'}</small></p></article>
               </div>
               <div className="pdf-report__body">
                 <div className="threat-findings">
-                  <h3>Flagged text</h3>
-                  {pdfScan.findings.length === 0 && <p>No matching prompt-injection indicators.</p>}
+                  <h3>Security and claim findings</h3>
+                  {pdfScan.findings.length === 0 && Object.keys(pdfScan.claim_checks?.comparisons || {}).length === 0 && <p>No prompt-injection indicator or claim comparison is available.</p>}
                   {pdfScan.findings.map((finding, index) => (
                     <article key={`${finding.category}-${index}`}>
                       <span>{finding.severity}</span>
                       <div><strong>{finding.category.replaceAll('_', ' ')}</strong><p>Page {finding.page || 'metadata'} · “{finding.snippet}”</p></div>
                     </article>
+                  ))}
+                  {Object.entries(pdfScan.claim_checks?.comparisons || {}).map(([name, comparison]) => (
+                    <article key={name}>
+                      <span>{comparison.match ? 'match' : 'flag'}</span>
+                      <div><strong>{name.replaceAll('_', ' ')}</strong><p>Document: {comparison.claimed} · GST source: {comparison.source}</p></div>
+                    </article>
+                  ))}
+                  {pdfScan.tool_steps?.length > 0 && <h3 className="source-call-title">Guardian-approved source calls</h3>}
+                  {pdfScan.tool_steps?.map((step) => (
+                    <details className="document-tool-proof" key={step.call_id || step.tool_name}>
+                      <summary><span>{step.guardian?.outcome || step.status}</span><div><strong>{step.tool_name}</strong><p>{step.call_id} · {step.latency_ms} ms</p></div><b>View live data</b></summary>
+                      <div className="document-tool-proof__data">
+                        <section><small>Request sent</small><pre>{JSON.stringify(step.input_data, null, 2)}</pre></section>
+                        <section><small>Source data returned</small><pre>{JSON.stringify(step.output_data, null, 2)}</pre></section>
+                        <section><small>Guardian evidence</small><pre>{JSON.stringify(step.guardian, null, 2)}</pre></section>
+                      </div>
+                    </details>
                   ))}
                 </div>
                 <div className="pdf-raw-evidence">

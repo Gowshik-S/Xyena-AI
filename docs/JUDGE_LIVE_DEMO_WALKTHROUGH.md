@@ -9,7 +9,7 @@ This guide is the recommended four-to-six minute hands-on path for demonstrating
 | Main live proof, MCP traces, and adversarial PDF upload | `https://app.gowshik.in/live-demo` | Deployed services, PostgreSQL registry, model inference, multiple MCP servers, Guardian authorization, exact returned evidence, and document-injection blocking |
 | GST invoice creation | `https://gst.gowshik.in/login` | A human-controlled, multi-page source application that creates synthetic invoices and exposes them through GST MCP tools |
 
-If a browser is already open on `/live-demo`, use that page for the first three tests. The malicious PDF is uploaded in the **Document security lab** on this same page; it is not uploaded to the GST portal or any third-party scanner.
+If a browser is already open on `/live-demo`, use that page for the first three tests. All three invoice PDFs are supplied separately and uploaded manually in the **Document security lab** on this same page. They are not hosted by the website, uploaded to the GST portal, or sent to a third-party scanner.
 
 ## 1. Prove the deployment is live
 
@@ -56,16 +56,35 @@ The sources have separate MCP servers and source databases. Xyena supplies a sig
 
 After the network tour, the judge can run the **Amount mismatch** or **Not yet registered** scenario to see a real negative result. These cases demonstrate that the UI does not always print `VERIFIED`.
 
-## 3. Upload a malicious PDF
+## 3. Run the three-document verification test
 
-1. Stay on `https://app.gowshik.in/live-demo` and scroll to **Document security lab**.
-2. Click **Load attack sample**, or download and re-upload `malicious-invoice-injection.pdf`.
-3. Click **Scan as untrusted evidence**.
-4. Confirm the result is **FLAGGED & QUARANTINED**.
-5. Inspect the matched snippets and reason codes for instruction override, Guardian bypass, tool execution requests, secret extraction, and concealment.
-6. Confirm all three safety facts: `0` tool calls, document content not sent to the model, and no business state change.
+Stay on `https://app.gowshik.in/live-demo`, scroll to **Document security lab**, and upload each separately supplied PDF with **Choose PDF**. The judge must click **Verify document evidence** for every run. The website does not contain a sample-download shortcut.
 
-The scanner accepts a PDF up to 2 MB and eight pages. It validates the PDF signature, parses a bounded amount of text, examines active PDF structures, and applies deterministic injection rules. Suspicious document text is treated as data and never becomes an agent instruction or tool authorization.
+### A. Clean invoice
+
+1. Choose `invoice-good.pdf` and click **Verify document evidence**.
+2. Watch the route move through Upload Gateway, Intake Agent, Document Defense, Guardian + GST MCP, and Verification Policy.
+3. At Intake Agent, point out the explicit decision: **untrusted evidence received; independent verification is required**.
+4. Confirm that Guardian authorizes `gst.invoices.search` and `gst.invoices.verify` as real read calls.
+5. Expand each completed tool call and show its exact request, returned GST source data, Guardian evidence, call ID, provenance hash, and latency.
+6. Confirm the final result is **VERIFIED AGAINST GST SOURCE** with matching amount, buyer GSTIN, and status.
+
+### B. Amount-changed invoice
+
+1. Choose `invoice-amount-changed.pdf` and click **Verify document evidence**.
+2. Observe the same real GST MCP reads. The document is safe to inspect, but it is not trusted merely because no injection was found.
+3. Expand the comparison and show document amount `545700.00` against source amount `545750.00`.
+4. Confirm the final result is **AMOUNT MISMATCH FLAGGED** and business state remains unchanged.
+
+### C. Prompt-injection invoice
+
+1. Choose `malicious-invoice-injection.pdf` and click **Verify document evidence**.
+2. Watch Document Defense detect the instruction manipulation. Guardian + GST MCP must change to **stopped**.
+3. Confirm the result is **PROMPT INJECTION BLOCKED**.
+4. Inspect the snippets and reason codes for instruction override, Guardian bypass, tool-execution requests, secret extraction, and concealment.
+5. Confirm all safety facts: `0` tool calls, document content not sent to the model, and no business-state change.
+
+The scanner accepts a PDF up to 2 MB and eight pages. It validates the PDF signature, parses a bounded amount of text, examines active PDF structures, and applies deterministic injection rules before any model or MCP execution. Suspicious text is quarantined as data. Clean content is still only a claim: it proceeds to two Guardian-governed GST MCP reads and becomes verified only after an independent source match. Loading and analyzing states are shown while the backend request is in flight; completed tool evidence is rendered only from the returned backend receipt.
 
 ## 4. Create a synthetic GST invoice with manual submission
 
@@ -94,6 +113,6 @@ The scanner accepts a PDF up to 2 MB and eight pages. It validates the PDF signa
 - Use the 6-platform tour first; it shows the widest platform coverage in one action.
 - Click at least one Request, Response, and Guardian tab rather than only showing the final verdict.
 - Run one negative invoice scenario so the judge sees fail-closed behavior.
-- Upload the supplied malicious PDF and point to `0 tools executed`.
+- Upload all three supplied PDFs: source match, amount mismatch, then prompt-injection block with `0 tools executed`.
 - In GST, click Autofill and pause before Save to prove that no automatic submission occurs.
 - Never paste production credentials, API keys, bank data, or personal documents into the demo.

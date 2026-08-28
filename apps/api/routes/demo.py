@@ -240,18 +240,29 @@ class PdfScanReport(ContractModel):
     sha256: str
     size_bytes: int
     page_count: int
-    classification: Literal["BLOCKED_PROMPT_INJECTION", "REVIEW_REQUIRED", "NO_INJECTION_FOUND"]
+    classification: Literal[
+        "BLOCKED_PROMPT_INJECTION",
+        "AMOUNT_MISMATCH",
+        "VERIFIED_SOURCE_MATCH",
+        "REVIEW_REQUIRED",
+        "NO_INJECTION_FOUND",
+    ]
     flagged: bool
     risk_score: int
     reason_codes: list[str]
     findings: list[PdfThreatFinding]
     structure: PdfStructureEvidence
     extracted_preview: str
+    document_verification: Literal[
+        "BLOCKED", "SOURCE_MATCH", "SOURCE_MISMATCH", "NOT_CHECKED"
+    ] = "NOT_CHECKED"
+    claim_checks: dict[str, Any] = Field(default_factory=dict)
+    tool_steps: list[AgentTraceStep] = Field(default_factory=list)
     scanned_at: datetime
     content_forwarded_to_model: Literal[False] = False
-    tool_calls_executed: Literal[0] = 0
+    tool_calls_executed: int = Field(default=0, ge=0, le=4)
     business_state_changed: Literal[False] = False
-    handling: str = "Document quarantined from agent instructions and authorization context."
+    handling: str = "Document evidence has not yet been matched to an independent source."
 
 
 def _authorize_demo(
@@ -805,8 +816,35 @@ def _scan_pdf_document(payload: bytes, file_name: str) -> PdfScanReport:
         findings=findings,
         structure=structure,
         extracted_preview=preview,
+        document_verification=(
+            "BLOCKED" if classification != "NO_INJECTION_FOUND" else "NOT_CHECKED"
+        ),
+        claim_checks={
+            "explicit_verification_required": True,
+            "intake_decision": "INDEPENDENT_SOURCE_VERIFICATION_REQUIRED",
+        },
         scanned_at=datetime.now(UTC),
+        handling=(
+            "Document quarantined from agent instructions and authorization context."
+            if findings
+            else "Document contains no detected injection; source verification is still required."
+        ),
     )
+
+
+def _extract_invoice_claims(text_value: str) -> dict[str, str]:
+    patterns = {
+        "invoice_number": r"Invoice reference\s+([A-Z0-9/-]+)",
+        "buyer_gstin": r"Buyer GSTIN\s+([A-Z0-9]{15})",
+        "claimed_status": r"Claimed status\s+([A-Z_]+)",
+        "claimed_total": r"Invoice total\s+(?:INR|Rs\.?|₹)?\s*([0-9,]+\.\d{2})",
+    }
+    claims: dict[str, str] = {}
+    for key, expression in patterns.items():
+        match = re.search(expression, text_value, re.IGNORECASE)
+        if match:
+            claims[key] = match.group(1).replace(",", "").upper()
+    return claims
 
 
 @router.post(
@@ -863,7 +901,7 @@ async def create_live_proof(
     "/scan-pdf",
     operation_id="scan_judge_pdf_for_prompt_injection",
     response_model=PdfScanReport,
-    summary="Inspect a bounded synthetic PDF without forwarding its content to a model",
+    summary="Inspect invoice evidence and independently verify safe claims through GST MCP",
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -884,7 +922,6 @@ async def scan_judge_pdf(
     file_name_header: str | None = Header(default=None, alias="X-File-Name"),
     settings: Settings = Depends(_authorize_demo),  # noqa: B008 - FastAPI dependency declaration
 ) -> PdfScanReport:
-    del settings
     global _last_pdf_scan_at
 
     async with _pdf_scan_lock:
@@ -921,7 +958,149 @@ async def scan_judge_pdf(
     safe_name = decoded_name.replace("\\", "/").rsplit("/", 1)[-1][:120]
     if not safe_name.lower().endswith(".pdf"):
         safe_name = f"{safe_name}.pdf"
-    return _scan_pdf_document(bytes(payload), safe_name)
+    report = _scan_pdf_document(bytes(payload), safe_name)
+    if report.flagged:
+        return report
+
+    claims = _extract_invoice_claims(report.extracted_preview)
+    intake_evidence = {
+        "explicit_verification_required": True,
+        "intake_decision": "INDEPENDENT_SOURCE_VERIFICATION_REQUIRED",
+    }
+    required_claims = {"invoice_number", "buyer_gstin", "claimed_status", "claimed_total"}
+    missing_claims = sorted(required_claims - set(claims))
+    if missing_claims:
+        return report.model_copy(
+            update={
+                "classification": "REVIEW_REQUIRED",
+                "flagged": True,
+                "risk_score": 35,
+                "reason_codes": ["INVOICE_CLAIMS_INCOMPLETE"],
+                "document_verification": "NOT_CHECKED",
+                "claim_checks": {
+                    **intake_evidence,
+                    "claims": claims,
+                    "missing_fields": missing_claims,
+                },
+                "handling": "Clean document, but required invoice claims could not be extracted.",
+            }
+        )
+
+    correlation_id = uuid4()
+    run_id = uuid4()
+    session_id = uuid4()
+    user_id = uuid4()
+    tool_steps: list[AgentTraceStep] = []
+    search_step, search_result = await _invoke_judge_tool(
+        settings,
+        sequence=1,
+        title="Find the authoritative GST invoice",
+        tool_name="gst.invoices.search",
+        arguments={
+            "query": claims["invoice_number"],
+            "status": claims["claimed_status"],
+            "limit": 5,
+        },
+        run_id=run_id,
+        session_id=session_id,
+        user_id=user_id,
+        correlation_id=correlation_id,
+        purpose="judge_demo_document_claim_verification",
+    )
+    tool_steps.append(search_step)
+    items = _source_data(search_step).get("items", [])
+    if (
+        search_result is None
+        or search_step.status != "verified"
+        or not isinstance(items, list)
+        or not items
+        or not isinstance(items[0], dict)
+    ):
+        return report.model_copy(
+            update={
+                "classification": "REVIEW_REQUIRED",
+                "flagged": True,
+                "risk_score": 45,
+                "reason_codes": ["AUTHORITATIVE_INVOICE_NOT_FOUND"],
+                "claim_checks": {
+                    **intake_evidence,
+                    "claims": claims,
+                    "source_match": False,
+                },
+                "tool_steps": tool_steps,
+                "tool_calls_executed": len(tool_steps),
+                "handling": "Document was clean, but its invoice reference could not be verified.",
+            }
+        )
+
+    invoice_id = str(items[0].get("id", ""))
+    verify_step, verify_result = await _invoke_judge_tool(
+        settings,
+        sequence=2,
+        title="Compare document claims with GST source",
+        tool_name="gst.invoices.verify",
+        arguments={
+            "invoice_id": invoice_id,
+            "claimed_total": claims["claimed_total"],
+            "claimed_buyer_gstin": claims["buyer_gstin"],
+            "claimed_status": claims["claimed_status"],
+        },
+        run_id=run_id,
+        session_id=session_id,
+        user_id=user_id,
+        correlation_id=correlation_id,
+        purpose="judge_demo_document_claim_verification",
+    )
+    tool_steps.append(verify_step)
+    verification = _source_data(verify_step)
+    if verify_result is None or verify_step.status != "verified":
+        return report.model_copy(
+            update={
+                "classification": "REVIEW_REQUIRED",
+                "flagged": True,
+                "risk_score": 45,
+                "reason_codes": ["GST_CLAIM_CHECK_FAILED"],
+                "claim_checks": {
+                    **intake_evidence,
+                    "claims": claims,
+                    "source_match": False,
+                },
+                "tool_steps": tool_steps,
+                "tool_calls_executed": len(tool_steps),
+                "handling": "The GST comparison did not complete; the document remains unverified.",
+            }
+        )
+
+    comparisons = verification.get("comparisons", {})
+    verified = verification.get("verified") is True
+    mismatch_codes = [
+        f"{str(name).upper()}_MISMATCH"
+        for name, comparison in comparisons.items()
+        if isinstance(comparison, dict) and comparison.get("match") is not True
+    ]
+    return report.model_copy(
+        update={
+            "classification": "VERIFIED_SOURCE_MATCH" if verified else "AMOUNT_MISMATCH",
+            "flagged": not verified,
+            "risk_score": 0 if verified else 70,
+            "reason_codes": [] if verified else mismatch_codes or ["DOCUMENT_CLAIM_MISMATCH"],
+            "document_verification": "SOURCE_MATCH" if verified else "SOURCE_MISMATCH",
+            "claim_checks": {
+                **intake_evidence,
+                "claims": claims,
+                "invoice_id": invoice_id,
+                "comparisons": comparisons,
+                "source_match": verified,
+            },
+            "tool_steps": tool_steps,
+            "tool_calls_executed": len(tool_steps),
+            "handling": (
+                "Document claims matched the independently retrieved GST source."
+                if verified
+                else "Document claims disagree with the independently retrieved GST source."
+            ),
+        }
+    )
 
 
 @router.post(

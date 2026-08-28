@@ -270,6 +270,39 @@
 .pdf-scan-action button:hover:not(:disabled) { background: #85382f; }
 .pdf-scan-action button:disabled { opacity: .5; cursor: not-allowed; }
 
+.agent-handoff { margin: 0 28px 28px; border: 1px solid var(--line); background: #f7f7f3; }
+.agent-handoff > header { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 57px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.agent-handoff > header small { color: var(--registry); font: 500 8px/1 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.agent-handoff > header strong { font-size: 11px; }
+.agent-handoff ol { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 0; list-style: none; }
+.agent-handoff li { position: relative; min-height: 133px; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-content: center; padding: 16px; border-right: 1px solid var(--line); opacity: .48; }
+.agent-handoff li:last-child { border-right: 0; }
+.agent-handoff li::after { content: '→'; position: absolute; z-index: 2; right: -8px; top: 51px; color: #93a09c; background: #f7f7f3; }
+.agent-handoff li:last-child::after { display: none; }
+.agent-handoff li > span { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); font: 500 8px/1 'DM Mono', monospace; }
+.agent-handoff li div { display: grid; gap: 6px; }
+.agent-handoff li strong { font-size: 10px; }
+.agent-handoff li p { margin: 0; color: var(--muted); font-size: 8px; line-height: 1.45; }
+.agent-handoff li em { grid-column: 1 / -1; color: var(--muted); font: 500 7px/1 'DM Mono', monospace; font-style: normal; text-transform: uppercase; }
+.agent-handoff li.is-active { opacity: 1; background: var(--registry-soft); box-shadow: inset 0 -3px 0 var(--registry); }
+.agent-handoff li.is-active > span { border-color: var(--registry); color: #fff; background: var(--registry); animation: pulse 700ms ease-in-out infinite alternate; }
+.agent-handoff li.is-complete { opacity: 1; background: #fff; }
+.agent-handoff li.is-complete > span { border-color: var(--pine); color: #fff; background: var(--pine); }
+.agent-handoff li.is-stopped { opacity: 1; color: var(--danger); background: #f8ece9; }
+.agent-handoff li.is-stopped > span, .agent-handoff li.is-failed > span { border-color: var(--danger); color: #fff; background: var(--danger); }
+.agent-handoff li.is-failed { opacity: 1; color: var(--danger); }
+
+.live-tool-inflight { position: relative; display: grid; grid-template-columns: 12px 1fr auto; gap: 14px; align-items: center; margin: -12px 28px 28px; padding: 15px 18px; overflow: hidden; border: 1px solid #b7c8c3; background: #fff; }
+.live-tool-inflight::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(32, 91, 82, .08), transparent); animation: live-tool-sweep 1.25s linear infinite; pointer-events: none; }
+.live-tool-inflight > span { width: 10px; height: 10px; border: 2px solid #b7c8c3; border-top-color: var(--pine); border-radius: 50%; animation: live-tool-spin .75s linear infinite; }
+.live-tool-inflight div { min-width: 0; display: grid; gap: 5px; }
+.live-tool-inflight small { color: var(--registry); font: 500 7px/1 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+.live-tool-inflight strong { font-size: 10px; }
+.live-tool-inflight code { color: var(--muted); font: 400 8px/1.45 'DM Mono', monospace; white-space: normal; }
+.live-tool-inflight em { color: var(--pine); font: 500 7px/1 'DM Mono', monospace; font-style: normal; letter-spacing: .08em; }
+@keyframes live-tool-spin { to { transform: rotate(360deg); } }
+@keyframes live-tool-sweep { to { transform: translateX(100%); } }
+
 .pdf-report { border-top: 3px solid var(--pine); }
 .pdf-report.is-flagged { border-top-color: var(--danger); }
 .pdf-report > header { min-height: 125px; display: grid; grid-template-columns: minmax(190px, .68fr) minmax(300px, 1.4fr) 120px; gap: 32px; align-items: center; padding: 25px 30px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #f5f7f5; }
@@ -297,6 +330,18 @@
 .threat-findings article > span { align-self: start; padding: 5px; color: var(--danger); background: #f6e7e4; font: 500 7px/1 'DM Mono', monospace; text-align: center; text-transform: uppercase; }
 .threat-findings article strong { font-size: 10px; text-transform: capitalize; }
 .threat-findings article p { margin: 5px 0 0; color: var(--muted); font: 400 8px/1.55 'DM Mono', monospace; overflow-wrap: anywhere; }
+.source-call-title { margin-top: 24px !important; padding-top: 18px; border-top: 1px solid var(--line); }
+.document-tool-proof { border-top: 1px solid #e3e3dc; }
+.document-tool-proof summary { display: grid; grid-template-columns: 58px 1fr auto; gap: 12px; align-items: center; padding: 13px 0; cursor: pointer; list-style: none; }
+.document-tool-proof summary::-webkit-details-marker { display: none; }
+.document-tool-proof summary > span { padding: 5px; color: var(--pine); background: var(--pine-soft); font: 500 7px/1 'DM Mono', monospace; text-align: center; text-transform: uppercase; }
+.document-tool-proof summary strong { font-size: 10px; }
+.document-tool-proof summary p { margin: 5px 0 0; color: var(--muted); font: 400 8px/1.4 'DM Mono', monospace; }
+.document-tool-proof summary > b { color: var(--registry); font-size: 8px; }
+.document-tool-proof__data { display: grid; gap: 8px; padding: 0 0 15px 70px; }
+.document-tool-proof__data section { min-width: 0; border: 1px solid var(--line); background: #f6f8f8; }
+.document-tool-proof__data small { display: block; padding: 9px 11px; border-bottom: 1px solid var(--line); color: var(--registry); font: 500 7px/1 'DM Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+.document-tool-proof__data pre { max-height: 210px; margin: 0; padding: 11px; overflow: auto; color: #263d49; font: 400 8px/1.55 'DM Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pdf-raw-evidence { min-width: 0; padding: 25px; background: #f6f8f8; }
 .pdf-raw-evidence > div { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
 .pdf-raw-evidence code { max-width: 55%; overflow: hidden; color: var(--muted); font: 400 7px/1.4 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
@@ -437,8 +482,13 @@
   .pdf-safety-facts article { border-right: 0; border-bottom: 1px solid var(--line); }
   .pdf-report__body { grid-template-columns: 1fr; }
   .threat-findings { border-right: 0; border-bottom: 1px solid var(--line); }
+  .agent-handoff { margin: 0 20px 20px; overflow-x: auto; }
+  .agent-handoff ol { min-width: 780px; }
+  .live-tool-inflight { margin: -8px 20px 20px; grid-template-columns: 12px 1fr; }
+  .live-tool-inflight em { grid-column: 2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .live-tool-inflight::after, .live-tool-inflight > span { animation: none; }
   .live-demo *, .live-demo *::before, .live-demo *::after { animation: none !important; transition: none !important; }
 }
