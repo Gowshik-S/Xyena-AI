@@ -112,6 +112,7 @@ class ToolRegistry:
         db: AsyncSession,
         tool_version_id: UUID,
         review: ToolPolicyCreate,
+        tenant_id: UUID | None,
     ) -> tuple[MCPTool, MCPToolVersion, MCPToolPolicy]:
         row = (
             await db.execute(
@@ -120,6 +121,7 @@ class ToolRegistry:
                 .join(MCPToolPolicy, MCPToolPolicy.tool_version_id == MCPToolVersion.id)
                 .join(MCPServer, MCPServer.id == MCPTool.server_id)
                 .where(MCPToolVersion.id == tool_version_id)
+                .where(MCPServer.tenant_id == tenant_id)
                 .limit(1)
             )
         ).first()

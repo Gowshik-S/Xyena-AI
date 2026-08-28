@@ -123,7 +123,13 @@ def create_app() -> FastAPI:
     )
     async def list_servers(tenant_id: UUID | None = None) -> list[MCPServerView]:
         async with get_database().session(tenant_id=tenant_id, service_role="mcp") as db:
-            servers = (await db.scalars(select(MCPServer).order_by(MCPServer.label))).all()
+            servers = (
+                await db.scalars(
+                    select(MCPServer)
+                    .where(MCPServer.tenant_id == tenant_id)
+                    .order_by(MCPServer.label)
+                )
+            ).all()
             return [MCPServerView.model_validate(server) for server in servers]
 
     @app.post(
@@ -208,7 +214,7 @@ def create_app() -> FastAPI:
         async with get_database().session(tenant_id=tenant_id, service_role="mcp") as db:
             try:
                 tool, version, policy = await tool_registry.review_tool_version(
-                    db, tool_version_id, body
+                    db, tool_version_id, body, tenant_id
                 )
             except LookupError as exc:
                 raise HTTPException(status_code=404, detail=str(exc)) from exc

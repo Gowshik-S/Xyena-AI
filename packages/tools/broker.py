@@ -279,6 +279,10 @@ class ToolBroker:
                     MCPToolPolicy.status == "ACTIVE",
                     MCPServer.status == "ACTIVE",
                     or_(
+                        MCPServer.tenant_id == request.context.tenant_id,
+                        MCPServer.tenant_id.is_(None),
+                    ),
+                    or_(
                         MCPToolPolicy.tenant_id == request.context.tenant_id,
                         MCPToolPolicy.tenant_id.is_(None),
                     ),

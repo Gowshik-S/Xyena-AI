@@ -53,7 +53,9 @@ class MCPTool(Base, UUIDPrimaryKeyMixin, TimestampMixin, VersionMixin):
     __tablename__ = "tools"
     __table_args__ = (
         UniqueConstraint("server_id", "original_name"),
-        UniqueConstraint("canonical_name"),
+        UniqueConstraint(
+            "server_id", "canonical_name", name="uq_mcp_tools_server_canonical_name"
+        ),
         {"schema": "mcp"},
     )
 
