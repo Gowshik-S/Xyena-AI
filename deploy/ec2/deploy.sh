@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+if [ "${XYENA_DEPLOY_LOCKED:-0}" != "1" ]; then
+    export XYENA_DEPLOY_LOCKED=1
+    exec flock -w 1800 /tmp/xyena-deploy.lock "$0" "$@"
+fi
+
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$ROOT"
 

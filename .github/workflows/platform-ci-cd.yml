@@ -88,7 +88,7 @@ jobs:
               git fetch origin main
               git checkout main
               git pull --ff-only origin main
-              sudo ./deploy/ec2/deploy.sh
+              sudo env XYENA_DEPLOY_LOCKED=1 ./deploy/ec2/deploy.sh
             "
           '
 
