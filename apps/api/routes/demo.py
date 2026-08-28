@@ -48,6 +48,7 @@ _GST_TENANT_ID = UUID("00000000-0000-4000-8000-000000001101")
 _GST_ORGANIZATION_ID = UUID("00000000-0000-4000-8000-000000001201")
 _SHARED_DEMO_TENANT_ID = UUID("00000000-0000-4000-8000-000000000101")
 _SHARED_DEMO_ORGANIZATION_ID = UUID("00000000-0000-4000-8000-000000000301")
+_SHARED_DEMO_USER_ID = UUID("00000000-0000-4000-8000-000000000201")
 _REGISTRY_TENANT_ID = UUID("00000000-0000-4000-8000-000000001301")
 _REGISTRY_ORGANIZATION_ID = UUID("00000000-0000-4000-8000-000000001201")
 _JUDGE_SCENARIOS: dict[str, dict[str, str]] = {
@@ -1019,7 +1020,7 @@ async def scan_judge_pdf(
     correlation_id = uuid4()
     run_id = uuid4()
     session_id = uuid4()
-    user_id = uuid4()
+    user_id = _SHARED_DEMO_USER_ID
     tool_steps: list[AgentTraceStep] = []
     search_step, search_result = await _invoke_judge_tool(
         settings,
@@ -1161,7 +1162,7 @@ async def create_operations_snapshot(
     correlation_id = uuid4()
     run_id = uuid4()
     session_id = uuid4()
-    user_id = uuid4()
+    user_id = _SHARED_DEMO_USER_ID
     steps: list[AgentTraceStep] = []
     today = date.today()
     requests = [
@@ -1295,7 +1296,7 @@ async def create_judge_trace(
     correlation_id = uuid4()
     run_id = uuid4()
     session_id = uuid4()
-    user_id = uuid4()
+    user_id = _SHARED_DEMO_USER_ID
     started_at = datetime.now(UTC)
     started = perf_counter()
     scenario = _JUDGE_SCENARIOS[body.scenario]
