@@ -112,7 +112,7 @@ PENDING → ACCEPTED
 | `buyer_id` | string | ERP/registry reference |
 | `buyer_gstin` | string | normalized |
 | `carrier_id` | string/null | carrier reference |
-| `tracking_number` | string/null | carrier-unique where set |
+| `tracking_number` | string/null | synthetic 10-character tracking ID; tenant-unique where set |
 | `status` | enum | state machine |
 | `ship_from` | JSON | schema validated |
 | `ship_to` | JSON | schema validated |
@@ -148,6 +148,32 @@ Contains delivery/version, buyer identity, status, accepted value, item-level ac
 Contains target aggregate/version, correction type, proposed changes, reason, requester, reviewer, decision and applied version.
 
 Shared audit, outbox and inbox tables are mandatory.
+
+### Synthetic tracking ID
+
+The demo service generates a tracking ID when a delivery becomes ready for dispatch. The identifier
+looks operationally realistic while remaining visibly owned by the XYENA demonstration environment:
+
+```text
+Format   XY[A-HJ-NP-Z2-9]{8}
+Length   exactly 10 characters
+Example  XY7K4M9Q2P
+```
+
+Rules:
+
+- `XY` is a fixed synthetic prefix and the remaining eight characters are generated randomly;
+- use a cryptographically secure random generator, not timestamps, counters or truncated database IDs;
+- omit visually ambiguous characters `I`, `O`, `0` and `1`;
+- enforce a unique database constraint on `(tenant_id, tracking_number)`;
+- regenerate on the unlikely event of a collision;
+- generate the value server-side and never accept a browser-supplied tracking ID;
+- the tracking ID is immutable after dispatch except through an approved correction that preserves
+  the previous value in history; and
+- UI, REST, MCP, events and audit records return the same stored value rather than generating a new
+  value for each read.
+
+The value is synthetic and must not copy or claim to use a real carrier's tracking-number format.
 
 ## 6. REST API
 
@@ -239,6 +265,7 @@ delivery.corrected
 
 - item quantities follow monotonic bounds and state rules;
 - PO/invoice/seller/buyer identifiers are immutable after dispatch except approved correction;
+- tracking IDs match `^XY[A-HJ-NP-Z2-9]{8}$`, are generated server-side and are tenant-unique;
 - POD binaries live in restricted object storage and are hash verified;
 - notes, addresses, recipient names and rejection reasons are untrusted strings;
 - event timestamps and actor permissions are validated server-side;
