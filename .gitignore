@@ -14,4 +14,5 @@ build/
 .vscode/
 *.log
 openapi/generated/
+tmp/
 
