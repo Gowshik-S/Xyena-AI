@@ -3,6 +3,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .security import verify_runtime_scope
 from .service import bank_service
@@ -152,4 +153,11 @@ async def holds_release(hold_id: str, ctx: Context) -> dict[str, Any]:
 
 
 mcp_app = mcp.streamable_http_app(
-    streamable_http_path="/", stateless_http=True, json_response=True)
+    streamable_http_path="/",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["bank-demo:8090", "bank.gowshik.in", "localhost:8090", "127.0.0.1:8090"],
+        allowed_origins=["https://bank.gowshik.in"],
+    ),
+)

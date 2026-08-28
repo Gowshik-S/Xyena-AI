@@ -2,6 +2,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .security import RuntimeScope, verify_runtime_scope
 from .service import erp_service
@@ -85,5 +86,11 @@ async def invoice_acceptance_get(
 
 
 mcp_app = mcp.streamable_http_app(
-    streamable_http_path="/", stateless_http=True, json_response=True
+    streamable_http_path="/",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["buyer-erp:8092", "erp.gowshik.in", "localhost:8092", "127.0.0.1:8092"],
+        allowed_origins=["https://erp.gowshik.in"],
+    ),
 )

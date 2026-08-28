@@ -4,6 +4,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .schemas import (
     ApplicationRequest,
@@ -118,5 +119,18 @@ async def exposure_get(msme_id: str | None, ctx: Context) -> dict[str, Any]:
     return evidence_result(scope, "exposure.get", result)
 
 
-mcp_app = mcp.streamable_http_app(streamable_http_path="/", stateless_http=True, json_response=True)
+mcp_app = mcp.streamable_http_app(
+    streamable_http_path="/",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "funder-marketplace:8094",
+            "funder.gowshik.in",
+            "localhost:8094",
+            "127.0.0.1:8094",
+        ],
+        allowed_origins=["https://funder.gowshik.in"],
+    ),
+)
 

@@ -3,6 +3,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import TypeAdapter
 from sqlalchemy import select
 
@@ -152,4 +153,17 @@ async def fulfilment_verify(claims: list[dict[str, Any]], ctx: Context) -> dict[
     return delivery_service.source_envelope("xyena-demo-delivery", scope.call_id, version, {"status": "SUCCESS", **result})
 
 
-mcp_app = mcp.streamable_http_app(streamable_http_path="/", stateless_http=True, json_response=True)
+mcp_app = mcp.streamable_http_app(
+    streamable_http_path="/",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "delivery-demo:8095",
+            "delivery.gowshik.in",
+            "localhost:8095",
+            "127.0.0.1:8095",
+        ],
+        allowed_origins=["https://delivery.gowshik.in"],
+    ),
+)

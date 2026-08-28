@@ -2,6 +2,7 @@ from typing import Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .mcp_security import verify_runtime_scope
 from .mcp_service import registry_mcp_service
@@ -66,5 +67,16 @@ async def authorized_persons_get(business_id: str, ctx: Context) -> dict[str, An
 
 
 mcp_app = mcp.streamable_http_app(
-    streamable_http_path="/", stateless_http=True, json_response=True
+    streamable_http_path="/",
+    stateless_http=True,
+    json_response=True,
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "business-registry:8093",
+            "registry.gowshik.in",
+            "localhost:8093",
+            "127.0.0.1:8093",
+        ],
+        allowed_origins=["https://registry.gowshik.in"],
+    ),
 )
