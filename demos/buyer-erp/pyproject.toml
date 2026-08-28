@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xyena-buyer-erp-demo"
+version = "0.1.0"
+description = "Stateful Buyer ERP and read-only MCP evidence demo for Xyena"
+requires-python = ">=3.12"
+dependencies = [
+  "aiosqlite>=0.20,<1",
+  "asyncpg>=0.30,<1",
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "httpx2>=2,<3",
+  "mcp>=2,<3",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "python-dotenv>=1.0,<2",
+  "sqlalchemy[asyncio]>=2.0.36,<3",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.scripts]
+buyer-erp-demo = "erp_demo.main:run"
+buyer-erp-register = "erp_demo.register:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["erp_demo"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"frontend" = "erp_demo/frontend"
