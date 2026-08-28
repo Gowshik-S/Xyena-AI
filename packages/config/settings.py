@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     openai_model: str = "gpt-5.6-terra"
     openai_embedding_model: str = "text-embedding-3-small"
+    model_provider: Literal["openai", "command_code"] = "openai"
+    command_code_api_key: SecretStr | None = None
+    command_code_base_url: AnyHttpUrl = "https://api.commandcode.ai/provider/v1"
+    command_code_zdr: bool = True
 
     oidc_issuer: str = "https://identity.example.com"
     oidc_audience: str = "xyena-api"
@@ -54,6 +58,7 @@ class Settings(BaseSettings):
 
     @field_validator(
         "openai_api_key",
+        "command_code_api_key",
         "service_token",
         "mcp_admin_token",
         "guardian_signing_key",
@@ -72,6 +77,12 @@ class Settings(BaseSettings):
     @property
     def jwks_url(self) -> str:
         return self.oidc_jwks_url or f"{self.oidc_issuer.rstrip('/')}/.well-known/jwks.json"
+
+    @property
+    def model_api_key(self) -> SecretStr | None:
+        if self.model_provider == "command_code":
+            return self.command_code_api_key
+        return self.openai_api_key
 
 
 @lru_cache(maxsize=1)

@@ -90,4 +90,11 @@ Use a protected GitHub `production` environment if deployments should require ma
 
 ## Required production credentials
 
-The generator safely creates database, service, MCP, portal, and Guardian signing secrets. Before enabling real agent runs, set a valid `XYENA_OPENAI_API_KEY`. Before opening authenticated core APIs to users, replace the placeholder OIDC issuer with the production identity provider and verify that `XYENA_DEV_AUTH_BYPASS=false` remains set.
+The generator safely creates database, service, MCP, portal, and Guardian signing secrets. Before enabling real agent runs, configure one model provider:
+
+- OpenAI: set `XYENA_MODEL_PROVIDER=openai`, `XYENA_OPENAI_API_KEY`, and `XYENA_OPENAI_MODEL`.
+- Command Code: set `XYENA_MODEL_PROVIDER=command_code`, `XYENA_COMMAND_CODE_API_KEY`, `XYENA_COMMAND_CODE_BASE_URL=https://api.commandcode.ai/provider/v1`, and a Command Code model identifier in `XYENA_OPENAI_MODEL`. Xyena uses the provider's OpenAI-compatible Chat Completions endpoint and enables its zero-data-retention header by default.
+
+Command Code does not supply the embedding endpoint used by the current memory embedding worker. Without a separate OpenAI embedding key, durable text memories still work but new vector embeddings are skipped.
+
+Before opening authenticated core APIs to users, replace the placeholder OIDC issuer with the production identity provider and verify that `XYENA_DEV_AUTH_BYPASS=false` remains set.

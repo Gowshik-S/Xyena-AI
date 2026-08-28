@@ -6,6 +6,8 @@ from uuid import UUID, uuid4
 
 import httpx
 from agents import Agent, RunContextWrapper, Runner, function_tool, set_default_openai_key
+from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
+from openai import AsyncOpenAI
 from sqlalchemy import func, select
 
 from packages.config import get_settings
@@ -89,12 +91,29 @@ async def call_xyena_tool(
 class AgentRuntime:
     def __init__(self) -> None:
         self.settings = get_settings()
-        if self.settings.openai_api_key is not None:
+        if self.settings.model_provider == "openai" and self.settings.openai_api_key is not None:
             set_default_openai_key(self.settings.openai_api_key.get_secret_value())
         self.context_assembler = ContextAssembler()
 
+    def _model(self) -> str | OpenAIChatCompletionsModel:
+        if self.settings.model_provider != "command_code":
+            return self.settings.openai_model
+        api_key = self.settings.command_code_api_key
+        if api_key is None:
+            raise AgentRuntimeError("Command Code model provider is not configured.")
+        headers = {"x-cmd-zdr": "1"} if self.settings.command_code_zdr else None
+        client = AsyncOpenAI(
+            api_key=api_key.get_secret_value(),
+            base_url=str(self.settings.command_code_base_url).rstrip("/"),
+            default_headers=headers,
+        )
+        return OpenAIChatCompletionsModel(
+            model=self.settings.openai_model,
+            openai_client=client,
+        )
+
     def _agents(self) -> Agent[AgentExecutionContext]:
-        model = self.settings.openai_model
+        model = self._model()
         intake = Agent[AgentExecutionContext](
             name="Intake Agent",
             model=model,
@@ -173,7 +192,7 @@ class AgentRuntime:
         )
 
     async def execute(self, tenant_id: UUID, run_id: UUID) -> None:
-        if self.settings.openai_api_key is None:
+        if self.settings.model_api_key is None:
             await self._mark_failed(tenant_id, run_id, "MODEL_PROVIDER_NOT_CONFIGURED")
             return
         run, input_text, execution, prompt = await self._prepare(tenant_id, run_id)
@@ -195,7 +214,7 @@ class AgentRuntime:
         await self._complete(tenant_id, run_id, str(result.final_output), result.context_wrapper.usage)
 
     async def resume_after_tool(self, tenant_id: UUID, run_id: UUID, tool_result: dict[str, Any]) -> None:
-        if self.settings.openai_api_key is None:
+        if self.settings.model_api_key is None:
             await self._mark_failed(tenant_id, run_id, "MODEL_PROVIDER_NOT_CONFIGURED")
             return
         async with get_database().session(tenant_id=tenant_id, service_role="worker") as db:
