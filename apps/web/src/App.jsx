@@ -7,6 +7,7 @@ const navItems = [
   ['Guardian', '#guardian'],
   ['Live architecture', '/architecture-live'],
   ['Verify live', '/live-demo'],
+  ['Live operations', '/live-operations'],
 ]
 
 const agents = [

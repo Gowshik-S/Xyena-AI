@@ -3,7 +3,7 @@ import hashlib
 import json
 import re
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from time import monotonic, perf_counter
 from typing import Any, Literal
@@ -37,6 +37,9 @@ _trace_interval_seconds = 12
 _pdf_scan_lock = asyncio.Lock()
 _last_pdf_scan_at = 0.0
 _pdf_scan_interval_seconds = 3
+_operations_lock = asyncio.Lock()
+_last_operations_at = 0.0
+_operations_interval_seconds = 5
 _maximum_pdf_bytes = 2 * 1024 * 1024
 _maximum_pdf_pages = 8
 _maximum_extracted_characters = 20_000
@@ -265,6 +268,32 @@ class PdfScanReport(ContractModel):
     handling: str = "Document evidence has not yet been matched to an independent source."
 
 
+class OperationsSnapshotRequest(ContractModel):
+    registry_identifier: str = Field(default="29ABCDE1234F1Z5", min_length=3, max_length=80)
+    gst_invoice_number: str = Field(default="MICRO/26/101", min_length=3, max_length=80)
+    gst_status: str = Field(default="REGISTERED", min_length=3, max_length=30)
+    erp_order_reference: str = Field(default="PO-1007", min_length=3, max_length=80)
+    delivery_seller_id: str = Field(default="seller_global_tech", min_length=3, max_length=80)
+    delivery_invoice_number: str = Field(default="INV-8942", min_length=3, max_length=80)
+    bank_account_token: str = Field(default="acct_demo_operating", min_length=3, max_length=80)
+
+
+class OperationsSnapshot(ContractModel):
+    snapshot_id: UUID
+    correlation_id: UUID
+    status: Literal["verified", "partial", "failed"]
+    started_at: datetime
+    completed_at: datetime
+    duration_ms: int
+    inputs: dict[str, str]
+    steps: list[AgentTraceStep]
+    successful_calls: int
+    total_calls: int
+    source_apps: dict[str, str]
+    scope: Literal["synthetic-live-operations"] = "synthetic-live-operations"
+    state_changed: Literal[False] = False
+
+
 def _authorize_demo(
     token: str | None = Header(default=None, alias="X-Demo-Token"),
     settings: Settings = Depends(get_settings),  # noqa: B008 - FastAPI dependency declaration
@@ -437,11 +466,12 @@ async def _invoke_judge_tool(
 ) -> tuple[AgentTraceStep, SafeToolResult | None]:
     started_at = datetime.now(UTC)
     started = perf_counter()
-    actor = (
-        "Xyena Supervisor"
-        if purpose == "judge_demo_cross_platform_read"
-        else "Xyena Invoice Agent"
-    )
+    if purpose == "judge_demo_cross_platform_read":
+        actor = "Xyena Supervisor"
+    elif purpose == "judge_demo_live_operations_snapshot":
+        actor = "Xyena Operations Supervisor"
+    else:
+        actor = "Xyena Invoice Agent"
     service_token = settings.service_token
     if service_token is None:
         return (
@@ -1100,6 +1130,141 @@ async def scan_judge_pdf(
                 else "Document claims disagree with the independently retrieved GST source."
             ),
         }
+    )
+
+
+@router.post(
+    "/operations-snapshot",
+    operation_id="create_live_operations_snapshot",
+    response_model=OperationsSnapshot,
+    summary="Read the judge-selected business workflow from five Guardian-governed MCP platforms",
+)
+async def create_operations_snapshot(
+    body: OperationsSnapshotRequest,
+    settings: Settings = Depends(_authorize_demo),  # noqa: B008 - FastAPI dependency declaration
+) -> OperationsSnapshot:
+    global _last_operations_at
+
+    async with _operations_lock:
+        elapsed = monotonic() - _last_operations_at
+        if elapsed < _operations_interval_seconds:
+            retry_after = max(1, round(_operations_interval_seconds - elapsed))
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="A live operations snapshot was generated recently.",
+                headers={"Retry-After": str(retry_after)},
+            )
+        _last_operations_at = monotonic()
+
+    started_at = datetime.now(UTC)
+    started = perf_counter()
+    correlation_id = uuid4()
+    run_id = uuid4()
+    session_id = uuid4()
+    user_id = uuid4()
+    steps: list[AgentTraceStep] = []
+    today = date.today()
+    requests = [
+        {
+            "title": "Read the business registry record",
+            "tool_name": "registry.businesses.get",
+            "arguments": {"identifier": body.registry_identifier.strip()},
+            "tenant_id": _REGISTRY_TENANT_ID,
+            "organization_id": _REGISTRY_ORGANIZATION_ID,
+        },
+        {
+            "title": "Search the GST invoice register",
+            "tool_name": "gst.invoices.search",
+            "arguments": {
+                "query": body.gst_invoice_number.strip(),
+                "status": body.gst_status.strip().upper(),
+                "limit": 5,
+            },
+            "tenant_id": _GST_TENANT_ID,
+            "organization_id": _GST_ORGANIZATION_ID,
+        },
+        {
+            "title": "Read the buyer purchase order",
+            "tool_name": "erp.purchase_orders.get",
+            "arguments": {"order_id_or_number": body.erp_order_reference.strip()},
+            "tenant_id": _SHARED_DEMO_TENANT_ID,
+            "organization_id": _SHARED_DEMO_ORGANIZATION_ID,
+        },
+        {
+            "title": "Read the current delivery status",
+            "tool_name": "delivery.deliveries.find_by_invoice",
+            "arguments": {
+                "invoice_id": None,
+                "seller_id": body.delivery_seller_id.strip(),
+                "invoice_number": body.delivery_invoice_number.strip(),
+            },
+            "tenant_id": _SHARED_DEMO_TENANT_ID,
+            "organization_id": _SHARED_DEMO_ORGANIZATION_ID,
+        },
+        {
+            "title": "Read the live bank balance",
+            "tool_name": "bank.accounts.get_balance",
+            "arguments": {"account_token": body.bank_account_token.strip()},
+            "tenant_id": _SHARED_DEMO_TENANT_ID,
+            "organization_id": _SHARED_DEMO_ORGANIZATION_ID,
+        },
+        {
+            "title": "Read recent bank credits and debits",
+            "tool_name": "bank.transactions.list",
+            "arguments": {
+                "account_token": body.bank_account_token.strip(),
+                "from_date": (today - timedelta(days=30)).isoformat(),
+                "to_date": today.isoformat(),
+                "limit": 20,
+            },
+            "tenant_id": _SHARED_DEMO_TENANT_ID,
+            "organization_id": _SHARED_DEMO_ORGANIZATION_ID,
+        },
+    ]
+    for sequence, tool_request in enumerate(requests, start=1):
+        step, _ = await _invoke_judge_tool(
+            settings,
+            sequence=sequence,
+            title=str(tool_request["title"]),
+            tool_name=str(tool_request["tool_name"]),
+            arguments=dict(tool_request["arguments"]),
+            run_id=run_id,
+            session_id=session_id,
+            user_id=user_id,
+            correlation_id=correlation_id,
+            tenant_id=tool_request["tenant_id"],
+            organization_id=tool_request["organization_id"],
+            purpose="judge_demo_live_operations_snapshot",
+        )
+        steps.append(step)
+
+    successful_calls = sum(step.status == "verified" for step in steps)
+    overall_status: Literal["verified", "partial", "failed"]
+    if successful_calls == len(steps):
+        overall_status = "verified"
+    elif successful_calls:
+        overall_status = "partial"
+    else:
+        overall_status = "failed"
+    completed_at = datetime.now(UTC)
+    return OperationsSnapshot(
+        snapshot_id=uuid4(),
+        correlation_id=correlation_id,
+        status=overall_status,
+        started_at=started_at,
+        completed_at=completed_at,
+        duration_ms=round((perf_counter() - started) * 1000),
+        inputs={key: str(value) for key, value in body.model_dump().items()},
+        steps=steps,
+        successful_calls=successful_calls,
+        total_calls=len(steps),
+        source_apps={
+            "registry": "https://registry.gowshik.in/businesses",
+            "gst": "https://gst.gowshik.in/invoices",
+            "erp": "https://erp.gowshik.in/purchase-orders",
+            "delivery": "https://delivery.gowshik.in/deliveries",
+            "bank": "https://bank.gowshik.in/transactions",
+        },
     )
 
 

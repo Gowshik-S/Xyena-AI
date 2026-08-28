@@ -343,6 +343,7 @@ function LiveDemo() {
         <nav aria-label="Live demo navigation">
           <a href="/">Platform</a>
           <a href="/architecture-live">Architecture</a>
+          <a href="/live-operations">Live operations</a>
           <span className="environment-badge"><i /> Production evidence</span>
         </nav>
       </header>

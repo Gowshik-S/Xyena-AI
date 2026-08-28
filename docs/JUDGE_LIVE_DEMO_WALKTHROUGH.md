@@ -7,9 +7,22 @@ This guide is the recommended four-to-six minute hands-on path for demonstrating
 | Experience | Platform | What the judge proves |
 | --- | --- | --- |
 | Main live proof, MCP traces, and adversarial PDF upload | `https://app.gowshik.in/live-demo` | Deployed services, PostgreSQL registry, model inference, multiple MCP servers, Guardian authorization, exact returned evidence, and document-injection blocking |
+| All-in-one source operations | `https://app.gowshik.in/live-operations` | Judge-entered references, fresh Registry/GST/ERP/Delivery/Bank MCP reads, delivery dashboard handoff, live bank credits, and per-call Guardian receipts |
 | GST invoice creation | `https://gst.gowshik.in/login` | A human-controlled, multi-page source application that creates synthetic invoices and exposes them through GST MCP tools |
 
 If a browser is already open on `/live-demo`, use that page for the first three tests. All three invoice PDFs are supplied separately and uploaded manually in the **Document security lab** on this same page. They are not hosted by the website, uploaded to the GST portal, or sent to a third-party scanner.
+
+## 0. Use the all-in-one live operations workspace
+
+1. Open `https://app.gowshik.in/live-operations`.
+2. Keep the seeded Registry, GST, Buyer ERP, Delivery, and Bank references, or type the references the judge wants to inspect.
+3. Click **Run all live MCP reads**. The execution rail visibly advances across the five source platforms while six backend calls run.
+4. Open **Tool receipt** on any result to show the exact request, returned source payload, Guardian decision, call ID, provenance hash, and latency.
+5. Use the source-app buttons when the judge wants to enter or change data. The GST form and every other mutation still require a deliberate human click.
+6. To demonstrate a changing delivery state, click **Change delivery status**, perform a valid transition in the Delivery dashboard, return to the workspace, and run the snapshot again.
+7. In **Bank / live credit tape**, show the current credit transactions returned by `bank.transactions.list`; the panel is populated from the fresh MCP response, not hard-coded frontend rows.
+
+The workspace intentionally keeps source mutations in the source applications. This avoids browser CORS changes, keeps credentials out of the frontend, and lets Xyena prove that a subsequently refreshed MCP read observes the committed source state.
 
 ## 1. Prove the deployment is live
 
