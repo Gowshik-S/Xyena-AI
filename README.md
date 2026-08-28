@@ -1,98 +1,407 @@
-# Xyena Enterprise AI
+# XYENA Enterprise AI
 
-This repository contains the core Xyena multi-agent backend and its independent Guardian
-authorization plane. The backend is Python 3.12, FastAPI, PostgreSQL/pgvector, OpenAPI 3.1, the
-OpenAI Agents SDK, and MCP v2 Streamable HTTP.
+Secure, multi-agent supply-finance orchestration with continuous Guardian governance.
 
-## Implemented backend
+> **XYENA determines whether an MSME receivable is genuine and financeable. Guardian determines whether the resulting AI-generated financial action is safe and authorized to execute.**
 
-- `apps/api` — public authenticated sessions, conversations, runs, approvals, memory, and data API;
-- `apps/worker` — durable Xyena agent runs, approval resume, embeddings, outbox, and recovery;
-- `apps/mcp_server` — hosted MCP, remote discovery/registry, schema validation, and tool broker;
-- `apps/guardian` — independent policy, approvals, and exact-request single-use authorization;
-- `migrations/versions` — IAM through data-vault schemas with PostgreSQL tenant RLS;
-- `deploy` and `compose.yaml` — production-oriented container and Kubernetes packaging.
+## Project status
 
-See [implementation status](./docs/backend-architecture/IMPLEMENTATION_STATUS.md) for delivered
-phases, configuration gates, and explicit exclusions.
+The Xyena core backend, Guardian authorization plane, MCP registry/broker, agent runtime, scoped
+context and memory, user-data services, migrations, containers and deployment manifests are
+implemented.
 
-No GST, banking, lending, dealer, payment, funding, or other demo backend was built or tested.
+An isolated synthetic bank MCP demonstration is implemented under `demos/bank-mcp`. It provides
+consented evidence reads and transfer preparation only; it cannot execute payments or connect to a
+real financial institution. GST/e-Invoice, Delivery and the remaining external applications are
+currently detailed implementation specifications, not runnable services.
 
-## Local core stack
+See [Backend Implementation Status](./docs/backend-architecture/IMPLEMENTATION_STATUS.md) for the
+delivered checkpoints, deployment gates and explicit exclusions.
 
-Copy `.env.example` to `.env`, set all required secrets (including PostgreSQL/MinIO variables used
-by Compose), generate Guardian keys with `python scripts/generate_guardian_keys.py`, then use:
+## Implemented runtime
 
-```powershell
-docker compose up --build
+| Component | Capability |
+|---|---|
+| `apps/api` | authenticated sessions, conversations, runs, approvals, memory and user-data APIs |
+| `apps/worker` | durable agent jobs, approval resume, embeddings, recovery and outbox delivery |
+| `apps/mcp_server` | hosted MCP, reviewed remote discovery, canonical broker and Guardian-routed calls |
+| `apps/guardian` | deterministic policy, approvals and single-use exact-request authorization |
+| `demos/bank-mcp` | synthetic bank evidence/preparation MCP service and light operations frontend |
+| `migrations/versions` | PostgreSQL/pgvector schemas and tenant row-level security |
+
+For local core configuration and deployment, start with `.env.example`, `compose.yaml` and the
+[backend architecture](./docs/backend-architecture/README.md). The bank demo has independent setup
+instructions in [demos/bank-mcp/README.md](./demos/bank-mcp/README.md).
+
+## The problem
+
+MSMEs frequently deliver goods or services before receiving payment. The resulting 30–90 day receivable period can create a working-capital gap.
+
+Financing that receivable requires more than checking an uploaded invoice. A trustworthy system must determine:
+
+- whether the business and buyer are genuine;
+- whether the invoice exists in an authoritative system;
+- whether the underlying goods or services were delivered;
+- whether the receivable remains unpaid;
+- whether the beneficiary is legitimate;
+- how much aggregate exposure already exists;
+- how much financing can safely be provided;
+- whether an AI-generated financial action is authorized and safe.
+
+An authenticated AI agent can still attempt an unsafe action because of prompt-injected documents, poisoned API data, compromised tools, counterparty impersonation, abnormal behaviour, excessive exposure, or unintended action chains.
+
+Therefore:
+
+> **Technical transaction validity is not the same as legitimate agent intent.**
+
+## Solution overview
+
+XYENA combines:
+
+1. tenant-isolated context and memory;
+2. specialized evidence and risk agents;
+3. controlled MCP access to external systems;
+4. signed, non-self-assertable evidence receipts;
+5. deterministic financing and exposure controls;
+6. an independent Guardian authorization layer;
+7. hash-bound financial execution;
+8. continuous post-execution monitoring and reconciliation.
+
+## Enterprise architecture
+
+![XYENA Enterprise Architecture](./docs/xyena-enterprise-architecture.png)
+
+The complete architecture is documented in [Enterprise Architecture](./docs/ENTERPRISE_ARCHITECTURE.md).
+
+### Operating principle
+
+```text
+Untrusted inputs are isolated
+        ↓
+Evidence is normalized and receipted
+        ↓
+Agents investigate independently
+        ↓
+Decision Orchestrator proposes an exact action
+        ↓
+Guardian allows, constrains, verifies, blocks or escalates
+        ↓
+Execution Gateway invokes an authorized MCP tool
+        ↓
+Monitoring reconciles the outcome and updates risk posture
 ```
 
-The public API is exposed on `http://localhost:8080`. MCP is bound to localhost on port `8081` and
-requires the service bearer token. Guardian is private to the backend network.
+## Evidence trust boundary
 
-## Architecture
+Uploaded files, OCR text, emails, API JSON and tool-returned strings are always treated as untrusted data—even when delivered through an authenticated connector.
 
-- [Xyena + Guardian core backend architecture](./docs/backend-architecture/README.md)
-- [OpenAPI 3.1 and MCP contract plan](./docs/backend-architecture/OPENAPI_AND_MCP_CONTRACTS.md)
-- [External demo MCP integration reference (read-only)](./docs/backend-architecture/EXTERNAL_DEMO_MCP_REFERENCE.md)
-- [Enterprise architecture](./docs/ENTERPRISE_ARCHITECTURE.md)
-- [Shareable enterprise architecture diagram](./docs/xyena-enterprise-architecture.svg)
-- [Shareable enterprise architecture PNG](./docs/xyena-enterprise-architecture.png)
-- [Validated Mermaid architecture source](./docs/xyena-enterprise-architecture.mmd)
-- [Compiled Mermaid SVG](./docs/xyena-enterprise-mermaid.svg)
-- [Compiled Mermaid PNG](./docs/xyena-enterprise-mermaid.png)
-- [Original XYENA architecture](./docs/ARCHITECTURE.md)
-- [Financial domain MCP and adapter architecture](./docs/FINANCIAL_DOMAIN_ADAPTERS.md)
-- [Bank MCP server specification](./docs/BANK_MCP.md)
-- [Bank MCP configuration guide](./docs/BANK_MCP_CONFIG.md)
-- [Demo GST and Delivery platform specification](./docs/DEMO_GST_DELIVERY_PLATFORM.md)
-- [External live demo application suite](./docs/ext-demo/README.md)
-- [Per-agent documentation](./docs/agents/README.md)
-
-## Web mockup
-
-The professional React landing page is located in `apps/web`.
-
-The live architecture control room is available at `/architecture-live`. It simulates one documented financing case across identity, evidence trust, isolated context and memory, specialist agents, MCP tools, exposure control, Guardian authorization, protected execution, and monitoring.
-
-```powershell
-cd "apps/web"
-npm install
-npm run dev
+```text
+Untrusted document or external payload
+        ↓
+Content sandbox
+        ↓
+Strict schema projection and normalization
+        ↓
+Invalid/instruction-like fields quarantined
+        ↓
+Raw and normalized hashes generated
+        ↓
+Gateway-signed EvidenceReceipt
+        ↓
+Deterministic completeness and consistency checks
 ```
 
-Create a production build with:
+Users, documents, external JSON and agents cannot label their own evidence as trusted. Domain findings must cite valid gateway-issued `evidence_receipt_id` values.
 
-```powershell
-npm run build
+## Multi-agent system
+
+| Agent | Responsibility |
+|---|---|
+| Intake Agent | Establishes case scope, consent and required evidence |
+| Business Agent | Verifies business identity, registration and eligibility |
+| Invoice Agent | Verifies invoice authenticity, value and duplicates |
+| Delivery Agent | Verifies fulfilment and supported delivered value |
+| Payment Agent | Reconciles payments and calculates the outstanding amount |
+| Fraud/Risk Agent | Detects anomalies, collusion, injection and dangerous graphs |
+| Credit Agent | Recommends safe financing capacity |
+| Decision Orchestrator | Combines findings into a canonical proposed action |
+| Funding Agent | Selects a funder and prepares the exact disbursement |
+| Guardian Agent | Governs calls and authorizes or refuses exact actions |
+| Monitoring Agent | Reconciles outcomes and detects behavioural/action drift |
+
+Each agent has its own detailed contract under [docs/agents](./docs/agents/README.md).
+
+Domain agents investigate and prepare actions. They cannot directly execute money movement.
+
+## Financing controls
+
+```text
+Available Company Capacity
+= Dynamic Company Limit − Existing Aggregate Exposure
+
+Receivable Maximum
+= Verified Outstanding Receivable × 70%
+
+Final Financing Amount
+= MIN(
+    Available Company Capacity,
+    Receivable Maximum,
+    Other Applicable Policy Limits
+  )
 ```
 
-The landing page uses a maroon, dark navy, white, and neutral palette, SVG-only visuals, Lenis smooth scrolling, and intersection-based text reveal motion.
+Aggregate exposure includes all participating banks, lenders and funders—not only the currently selected provider.
 
-## Core system areas
+## Guardian
 
-- `apps/api` - application API and orchestration entry point.
-- `apps/mcp_server` - MCP server and secured tool exposure.
-- `apps/guardian` - independent deterministic authorization service.
-- `packages/agents` - Xyena supervisor and active domain-neutral specialists.
-- `packages/context` - tenant, user, MSME, case, session, and evidence context assembly.
-- `packages/evidence` - untrusted-content isolation, schema projection, signed evidence receipts, and completeness/consistency policy.
-- `packages/memory` - isolated user memory, MSME organizational memory, case memory, and retrieval policies.
-- `packages/tools` - typed internal tools and MCP client adapters.
-- `packages/contracts` - shared schemas for context, memory, agent findings, tool calls, and decisions.
-- `tests` - reserved for unit, integration, isolation, security, and scenario tests.
-- `docs` - copied source brief, problem statement, architecture, and shareable diagram.
+Guardian continuously observes meaningful:
 
-## Context isolation key
+- agent findings;
+- tool requests and results;
+- evidence receipts and security flags;
+- proposed actions;
+- authorization attempts;
+- execution outcomes;
+- behavioural and action-chain changes.
 
-Every context item, memory item, agent run, and tool call will be scoped by:
+Sensitive reads, state changes and financially consequential actions are synchronously governed.
+
+Guardian checks:
+
+- agent/workload identity;
+- active authority and mandate;
+- tenant, organization, user and case scope;
+- action intent and instruction provenance;
+- signed evidence receipt validity and freshness;
+- required evidence completeness and consistency;
+- counterparty and beneficiary identity;
+- exposure and domain policy;
+- behaviour, velocity and action sequences;
+- exact destination, amount, asset, venue and method.
+
+Guardian returns:
+
+| Decision | Meaning |
+|---|---|
+| `ALLOW` | Execute the exact proposed action |
+| `CONSTRAIN` | Execute only within safer parameters |
+| `VERIFY` | Obtain additional evidence or confirmation |
+| `BLOCK` | Refuse the action |
+| `ESCALATE` | Require a human/security reviewer |
+
+An `ALLOW` or `CONSTRAIN` decision can issue a short-lived, single-use authorization bound to the canonical action hash. Changing the amount, beneficiary, account, asset, chain, contract, order or venue invalidates the authorization.
+
+## Financial Domain MCP servers
+
+Guardian is domain-agnostic. Supply finance is the first implementation.
+
+| MCP server | Evidence capabilities | Protected capabilities |
+|---|---|---|
+| Bank MCP | Account Aggregator, accounts, transactions, beneficiaries and limits | transfers, holds, reversals and beneficiary changes |
+| Wallet MCP | chain state, balances, address intelligence and allowances | transfers, approvals, bridges and signing |
+| Portfolio MCP | holdings, positions, market data and mandates | orders, cancellations, rebalancing and collateral |
+| DeFi MCP | protocol, contract, oracle and simulation evidence | swaps, lending, staking, liquidity and contract calls |
+| Supply MCP | business, GST, invoice, ERP, delivery, risk and funder evidence | controlled case/funding preparation |
+| Extension MCP | cards, lending, insurance, treasury, FX and trade finance | registered domain-specific actions |
+
+See:
+
+- [Financial Domain Adapter Architecture](./docs/FINANCIAL_DOMAIN_ADAPTERS.md)
+- [Bank MCP Server](./docs/BANK_MCP.md)
+- [Bank MCP Configuration](./docs/BANK_MCP_CONFIG.md)
+
+### Account Aggregator boundary
+
+The Account Aggregator is a consented, read-only evidence connector behind Bank MCP. It is not the payment-execution path.
+
+```text
+Account Aggregator connector → consented financial evidence
+Bank/payment connector       → Guardian-authorized execution
+```
+
+## External live demo applications
+
+The target demonstration environment uses independent, database-backed applications on separate
+subdomains. The bank MCP demo is currently implemented; the remaining rows are build specifications.
+When implemented, updates must persist, emit transactional events, refresh connected UIs and
+immediately affect MCP results.
+
+| Application | Example subdomain | Status | Specification |
+|---|---|---|---|
+| Business Registry | `registry.demo.xyena.ai` | specified | [Registry app](./docs/ext-demo/BUSINESS_REGISTRY_APP.md) |
+| GST and e-Invoice | `gst.demo.xyena.ai` | specified | [GST/e-Invoice app](./docs/ext-demo/GST_EINVOICE_APP.md) |
+| Buyer and ERP | `erp.demo.xyena.ai` | specified | [Buyer/ERP app](./docs/ext-demo/BUYER_ERP_APP.md) |
+| Delivery and Fulfilment | `delivery.demo.xyena.ai` | specified | [Delivery app](./docs/ext-demo/DELIVERY_APP.md) |
+| Synthetic Bank MCP | `bank.demo.xyena.ai` | implemented | [Bank demo](./demos/bank-mcp/README.md) |
+| Bank and Account Aggregator target | `bank.demo.xyena.ai` | specified | [Bank/AA app](./docs/ext-demo/BANK_AA_APP.md) |
+| Funder Marketplace | `funder.demo.xyena.ai` | specified | [Funder app](./docs/ext-demo/FUNDER_MARKETPLACE_APP.md) |
+| Ledger and Payment Operations | `ledger.demo.xyena.ai` | specified | [Ledger app](./docs/ext-demo/LEDGER_PAYMENT_APP.md) |
+
+Start with the [External Demo Suite Overview](./docs/ext-demo/README.md) and [Shared Platform Requirements](./docs/ext-demo/SHARED_PLATFORM_REQUIREMENTS.md).
+
+### Live data propagation
+
+```text
+Authorized data update
+        ↓
+Application database transaction
+        ├── domain record update
+        ├── immutable audit event
+        └── transactional outbox event
+        ↓
+SSE refreshes connected browser screens
+        ↓
+MCP reads return the new committed version
+        ↓
+Other applications consume signed, idempotent events
+        ↓
+XYENA invalidates stale evidence and reevaluates affected cases
+```
+
+## Context and isolation
+
+Every context item, memory item, evidence receipt, finding, tool call, proposal, decision and execution result is scoped by:
 
 ```text
 tenant_id
-  +-- msme_id
-       +-- user_id
-       +-- case_id
-       +-- session_id
+└── msme_id / subject_id
+    ├── user_id
+    │   └── session_id
+    └── case_id
+        ├── evidence_snapshot_id
+        ├── agent_run_id
+        ├── proposed_action_id
+        └── guardian_decision_id
 ```
 
-Guardian remains the authorization boundary for financially consequential tool calls. MCP standardizes tool discovery and invocation; it does not replace XYENA identity, mandate, provenance, policy, or risk checks.
+Memory can assist reasoning but cannot establish identity, approve a beneficiary, create a mandate or authorize a transaction.
+
+## Repository structure
+
+```text
+apps/
+├── api/                   # identity, sessions and orchestration entry point
+├── guardian/              # independent authorization plane
+├── mcp_server/            # MCP registry, broker and hosted tools
+├── web/                   # web experience
+└── worker/                # durable agent and operations jobs
+
+demos/
+└── bank-mcp/              # synthetic bank MCP service and frontend
+
+packages/
+├── agents/                # agent implementations and Guardian
+├── context/               # trusted scope and ContextEnvelope assembly
+├── contracts/             # shared schemas and canonical action contracts
+├── evidence/              # sandboxing, normalization and signed receipts
+├── memory/                # scoped memory and retrieval policy
+├── tools/                 # connector adapters and MCP clients
+└── policies/              # deterministic evidence and financial policies
+
+tests/
+├── contracts/
+├── isolation/
+├── security/
+├── integration/
+└── scenarios/
+
+docs/
+├── agents/
+├── ext-demo/
+└── architecture and MCP specifications
+```
+
+GST, Delivery and other external-demo applications remain specified under `docs/ext-demo` until their
+runtime directories are implemented.
+
+## Documentation
+
+### Core idea and architecture
+
+- [Combined XYENA Idea](./docs/XYENA_AI_Combined_Idea.md)
+- [Agent Handoff Idea](./AGENT_IDEA.md)
+- [Enterprise Architecture](./docs/ENTERPRISE_ARCHITECTURE.md)
+- [Original Architecture Overview](./docs/ARCHITECTURE.md)
+- [Validated Mermaid Source](./docs/xyena-enterprise-architecture.mmd)
+- [Architecture SVG](./docs/xyena-enterprise-architecture.svg)
+- [Architecture PNG](./docs/xyena-enterprise-architecture.png)
+- [Problem Statement 8](./docs/Problem_Statement_8.pdf)
+
+### Agents and tools
+
+- [Agent Documentation Index](./docs/agents/README.md)
+- [Financial Domain Adapters](./docs/FINANCIAL_DOMAIN_ADAPTERS.md)
+- [Bank MCP Specification](./docs/BANK_MCP.md)
+- [Bank MCP Configuration Guide](./docs/BANK_MCP_CONFIG.md)
+
+### External demo systems
+
+- [External Demo Application Suite](./docs/ext-demo/README.md)
+- [Shared External Platform Requirements](./docs/ext-demo/SHARED_PLATFORM_REQUIREMENTS.md)
+- [Combined GST and Delivery Overview](./docs/DEMO_GST_DELIVERY_PLATFORM.md)
+
+## Recommended implementation order
+
+### Phase 1 — Shared contracts and trust boundary
+
+- trusted scope envelope;
+- agent finding and proposed-action schemas;
+- content sandbox and evidence normalization;
+- signed EvidenceReceipt contract;
+- tool policy and MCP Gateway;
+- append-only audit and event outbox.
+
+### Phase 2 — Live external evidence applications
+
+- Business Registry;
+- GST/e-Invoice;
+- Buyer/ERP;
+- Delivery/Fulfilment;
+- cross-application events and MCP tools.
+
+### Phase 3 — Supply-finance agents
+
+- Intake, Business, Invoice, Delivery and Payment agents;
+- Fraud/Risk and Credit agents;
+- deterministic completeness, consistency, exposure and eligibility engines;
+- Decision Orchestrator.
+
+### Phase 4 — Bank MCP and financial execution
+
+- Bank/AA application;
+- Funder Marketplace;
+- Ledger/Payment Operations;
+- Funding Agent;
+- Guardian exact-action authorization;
+- idempotency, reservation and reconciliation.
+
+### Phase 5 — Security scenarios and domain expansion
+
+- document and JSON prompt injection;
+- fabricated provenance;
+- beneficiary impersonation;
+- duplicate financing and cascading actions;
+- Wallet, Portfolio and DeFi MCP prototypes.
+
+## First end-to-end demonstration
+
+The first complete scenario should show:
+
+1. an MSME and buyer exist in the Registry app;
+2. the ERP app contains an approved purchase order;
+3. the GST app contains a registered invoice;
+4. the Delivery app contains accepted fulfilment;
+5. the Bank/AA app provides consented transaction evidence;
+6. agents independently verify the case;
+7. the exposure engine constrains the safe amount;
+8. the Funder app reserves an offer;
+9. Guardian authorizes the exact disbursement;
+10. Bank MCP and the Ledger app execute/reconcile it once;
+11. every UI and MCP result reflects the updated committed state;
+12. the complete evidence and action chain remains auditable.
+
+The attack version should inject malicious instructions or contradictory evidence and visibly produce `VERIFY`, `CONSTRAIN`, `BLOCK` or `ESCALATE` before funds move.
+
+## Security and demonstration disclaimer
+
+This project is an architecture and demonstration environment. It is not a licensed bank, Account Aggregator, GST portal, payment system, lender, broker, custodian or DeFi execution service. Demo applications must use synthetic data and non-production credentials until the required legal, regulatory, security and operational controls are independently established.

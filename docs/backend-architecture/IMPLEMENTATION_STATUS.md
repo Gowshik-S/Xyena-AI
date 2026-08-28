@@ -1,8 +1,11 @@
 # Xyena + Guardian Backend Implementation Status
 
 **Implementation date:** 2026-08-28  
-**Scope:** core Xyena platform, Guardian, MCP calling, context, memory, user data, and operations  
-**Excluded:** all demo/domain applications and their business integrations  
+**Scope:** core Xyena platform, Guardian, MCP calling, context, memory, user data, operations, and the
+isolated synthetic bank MCP demonstration
+
+**Excluded:** GST, Delivery and other external-domain application runtimes and real financial integrations
+
 **Test execution:** intentionally not run, following the implementation instruction
 
 ## Delivered checkpoints
@@ -34,7 +37,8 @@ Implemented and pushed in commit `d7fcefb`:
   `xyena.tools.explain_risk`;
 - migration `0002_mcp_gateway` and initial active policies.
 
-No external demo API was converted into a tool and no demo MCP server was built.
+At the Phase 2 checkpoint, no external demo API had been converted into a tool and no demo MCP server
+had been built. The later synthetic bank checkpoint is documented below.
 
 ### Phase 3 — Guardian enforcement plane
 
@@ -88,6 +92,24 @@ Implemented in the final checkpoint:
 - Guardian key-generation utility and OpenAPI export for public API, Guardian internal API, and MCP
   control API.
 
+### Post-core checkpoint — reviewed remote MCP and synthetic bank demo
+
+Implemented and pushed after the original five core phases:
+
+- separate MCP review credential, reviewed server/tool activation endpoints, immutable schema-version
+  activation, exact egress-host allowlists and HMAC-signed per-user runtime scope;
+- isolated `demos/bank-mcp` Python service with OpenAPI 3.1 and MCP v2 Streamable HTTP;
+- seven synthetic bank tools for account, balance, transaction, beneficiary and limit evidence plus
+  idempotent transfer preparation/status;
+- active synthetic consent, tenant/user resource enforcement, audit events, expiring canonical action
+  hashes and aggregate preparation limits;
+- explicit `execution_available=false` boundary with no real payment or balance mutation capability;
+- reviewed registration utility, direct development connection checker and independent Docker Compose;
+- responsive light-theme bank operations frontend with dedicated account, transaction, beneficiary,
+  prepared-action and MCP-connection pages.
+
+Primary commits: `7a33fc6`, `ac5490c`, `6347582`, and `032c2ed`.
+
 ## Apps that should be ready after configuration
 
 | App | Ready capability | Required configuration before use |
@@ -97,6 +119,7 @@ Implemented in the final checkpoint:
 | `apps/mcp_server` | Hosted core MCP, remote registry/discovery, canonical broker and approved resume | Service token, PostgreSQL, Guardian URL, approved server records and secret references |
 | `apps/guardian` | Policy decisions, approvals, signed exact-request authorizations | Service token, PostgreSQL, Ed25519 signing and verification keys |
 | `apps/web` | Pre-existing web experience only | It must be connected only to `apps/api`; its demo simulation was not built or tested here |
+| `demos/bank-mcp` | Synthetic bank evidence, preparation-only tools and operations UI | Separate demo tokens, Xyena service/admin credentials and reviewed MCP registration |
 
 ## Mandatory deployment gates
 
@@ -121,8 +144,11 @@ Before calling the deployment production-ready:
 
 ## Deliberately not implemented
 
-- GST, banking, lending, dealer, payment, funding, credit, portfolio, DeFi, or other demo workflows;
-- credentials, tool policies, adapters, or data models specific to those demos;
-- simulated financial execution or validation against a demo platform;
+- runnable GST/e-Invoice, Delivery, Business Registry, Buyer/ERP, Funder, Ledger or dealer demos;
+- real bank, Account Aggregator, payment-rail, lending, portfolio or DeFi integrations;
+- payment execution, balance mutation, beneficiary mutation, holds, reversals or real credentials in
+  the synthetic bank demo;
+- agent/domain implementations for Invoice, Delivery, Payment, Credit, Decision and Funding beyond
+  their documented contracts and inactive catalog entries;
 - automatic activation of OpenAPI operations or newly discovered MCP tools;
 - a claim that tests passed—the instruction for this build explicitly prohibited running tests.
