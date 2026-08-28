@@ -1,0 +1,103 @@
+name: Xyena platform CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: xyena-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate core and deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install core validation dependencies
+        run: python -m pip install --upgrade pip && python -m pip install '.[dev]'
+
+      - name: Compile core Python
+        run: python -m compileall -q apps packages migrations scripts deploy/ec2/generate_env.py
+
+      - name: Export and validate OpenAPI 3.1 documents
+        run: |
+          python scripts/export_openapi.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from openapi_spec_validator import validate
+
+          for path in Path("openapi/generated").glob("*.json"):
+              validate(json.loads(path.read_text(encoding="utf-8")))
+              print(f"validated {path}")
+          PY
+
+      - name: Validate production Compose model
+        run: |
+          python deploy/ec2/generate_env.py
+          docker compose --env-file .env -f compose.ec2.yaml config --quiet
+
+      - name: Build main Xyena frontend
+        working-directory: apps/web
+        run: npm ci && npm run build
+
+  deploy:
+    name: Deploy to EC2
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Configure SSH identity
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/xyena.pem
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/xyena.pem ~/.ssh/known_hosts
+
+      - name: Fast-forward and deploy
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+        run: |
+          test -n "$EC2_HOST"
+          test -n "$EC2_USER"
+          ssh -i ~/.ssh/xyena.pem "$EC2_USER@$EC2_HOST" '
+            set -eu
+            cd /home/ubuntu/Xyena-AI
+            flock -w 1800 /tmp/xyena-deploy.lock sh -c "
+              git fetch origin main
+              git checkout main
+              git pull --ff-only origin main
+              sudo ./deploy/ec2/deploy.sh
+            "
+          '
+
+      - name: Verify public Cloudflare origins
+        env:
+          PUBLIC_HEALTH_URL: ${{ vars.PUBLIC_HEALTH_URL }}
+        run: |
+          if [ -n "$PUBLIC_HEALTH_URL" ]; then
+            curl --fail --silent --show-error --retry 10 --retry-delay 5 "$PUBLIC_HEALTH_URL"
+          else
+            echo "PUBLIC_HEALTH_URL is unset; EC2-local smoke checks completed during deployment."
+          fi

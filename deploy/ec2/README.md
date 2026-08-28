@@ -76,6 +76,18 @@ sudo deploy/ec2/deploy.sh
 
 Back up the `xyena-platform_postgres-data` and `xyena-platform_object-data` volumes before destructive maintenance. Never commit `.env`; to view a specific operator credential, read only the required key directly on EC2.
 
+## CI/CD
+
+`.github/workflows/platform-ci-cd.yml` validates Python, the generated OpenAPI 3.1 documents, the production Compose model, and the main web build on every pull request. A successful `main` run then connects to EC2, takes a deployment lock, fast-forwards the existing clone, deploys, registers MCP catalogs, and runs the local smoke checks.
+
+Configure these GitHub repository settings:
+
+- Secrets: `EC2_SSH_PRIVATE_KEY`, `EC2_KNOWN_HOSTS`
+- Variables: `EC2_HOST`, `EC2_USER`
+- Optional variable after Cloudflare routing is live: `PUBLIC_HEALTH_URL=https://api.gowshik.in/health/ready`
+
+Use a protected GitHub `production` environment if deployments should require manual approval. The workflow never copies `.env` from GitHub; all application credentials remain on EC2.
+
 ## Required production credentials
 
 The generator safely creates database, service, MCP, portal, and Guardian signing secrets. Before enabling real agent runs, set a valid `XYENA_OPENAI_API_KEY`. Before opening authenticated core APIs to users, replace the placeholder OIDC issuer with the production identity provider and verify that `XYENA_DEV_AUTH_BYPASS=false` remains set.
