@@ -6,7 +6,7 @@
   <template id="page-content">
     <section class="page-intro"><div><strong>New source invoice</strong><p>Enter source facts only. Taxable values, tax split, totals and financial year are calculated by the service.</p></div><span class="status status-draft">Creates draft</span></section>
     <form id="invoiceForm" class="panel">
-      <div class="panel-header"><div><p class="section-label">Document identity</p><h2>Invoice header</h2></div><span class="panel-note">Required fields are validated before commit</span></div>
+      <div class="panel-header"><div><p class="section-label">Document identity</p><h2>Invoice header</h2></div><div class="invoice-header-actions"><button class="secondary-button" id="autofillInvoice" type="button">Autofill synthetic example</button><span class="panel-note" id="autofillState">Autofill never submits</span></div></div>
       <div class="panel-body">
         <div class="form-grid">
           <div class="field"><label for="invoiceNumber">Invoice number</label><input id="invoiceNumber" maxlength="32" placeholder="INV-2026-0042" required></div>
@@ -22,6 +22,7 @@
           <div class="line-row line-head" aria-hidden="true"><span>Description</span><span>HSN/SAC</span><span>Qty</span><span>Unit</span><span>Unit price</span><span>Discount</span><span>GST %</span><span>Action</span></div>
           <div id="lineRows"></div>
         </section>
+        <div class="manual-submit-note"><strong>Manual approval required</strong><span>Autofill only prepares this form. Review the values, then click Save draft invoice yourself.</span></div>
         <div class="form-actions"><a class="secondary-button" href="/invoices">Cancel</a><button class="primary-button" type="submit">Save draft invoice</button></div>
       </div>
     </form>

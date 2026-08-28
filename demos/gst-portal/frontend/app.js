@@ -172,6 +172,44 @@ async function initInvoiceNew() {
   container.innerHTML = lineRow();
   byId("addLine").addEventListener("click", () => container.insertAdjacentHTML("beforeend", lineRow()));
   container.addEventListener("click", event => { if (event.target.matches(".remove-line") && container.children.length > 1) event.target.closest(".line-row").remove(); });
+  byId("autofillInvoice").addEventListener("click", () => {
+    const today = new Date();
+    const dayStamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    const values = {
+      invoiceNumber: `DEMO-${dayStamp}-${suffix}`,
+      invoiceType: "B2B",
+      invoiceDate: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
+      buyerGstin: "29BUYER1234A1Z8",
+      buyerName: "Bluepeak Retail Networks Limited",
+      placeOfSupply: "29",
+      purchaseOrder: `PO-JUDGE-${dayStamp}`,
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const field = byId(id);
+      field.value = value;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    container.innerHTML = lineRow() + lineRow();
+    const rows = [...container.querySelectorAll(".line-row")];
+    const exampleLines = [
+      { description: "Industrial sensor assembly", hsn_sac: "902610", quantity: "4", unit: "NOS", unit_price: "32500", discount: "2500", gst_rate: "18" },
+      { description: "Calibration and commissioning service", hsn_sac: "998346", quantity: "1", unit: "HRS", unit_price: "18000", discount: "0", gst_rate: "18" },
+    ];
+    rows.forEach((row, index) => {
+      Object.entries(exampleLines[index]).forEach(([fieldName, value]) => {
+        const field = row.querySelector(`[data-field="${fieldName}"]`);
+        field.value = value;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+    byId("autofillState").textContent = "Example filled · review and save manually";
+    byId("autofillState").classList.add("autofill-complete");
+    toast("Synthetic example filled. Review it, then click Save draft invoice yourself.");
+    byId("invoiceNumber").focus();
+  });
   byId("invoiceForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     const lines = [...document.querySelectorAll("#lineRows .line-row")].map(row => Object.fromEntries([...row.querySelectorAll("[data-field]")].map(input => [input.dataset.field, input.value])));

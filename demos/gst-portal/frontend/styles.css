@@ -78,6 +78,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .panel { min-width: 0; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
 .panel-full { grid-column: 1 / -1; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 66px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.invoice-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 11px; flex-wrap: wrap; }
+.autofill-complete { color: var(--filing-green); font-weight: 700; }
 .section-label { margin: 0 0 3px; color: var(--filing-green); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .13em; }
 .panel-note { color: var(--muted); font-size: 10px; }
 .panel-body { padding: 18px; }
@@ -115,6 +117,8 @@ td code, code.identifier { color: var(--revenue-blue); font: 10px/1.4 Consolas, 
 .span-2 { grid-column: span 2; }
 .span-3 { grid-column: 1 / -1; }
 .form-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 16px; border-top: 1px solid var(--line); }
+.manual-submit-note { display: flex; align-items: center; gap: 13px; margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--tax-saffron); background: var(--tax-soft); color: #69450f; font-size: 11px; }
+.manual-submit-note strong { white-space: nowrap; text-transform: uppercase; letter-spacing: .05em; font-size: 9px; }
 .line-editor { margin-top: 16px; border: 1px solid var(--line); }
 .line-editor-header { display: flex; justify-content: space-between; align-items: center; padding: 13px 15px; background: var(--surface-soft); }
 .line-row { display: grid; grid-template-columns: 1.7fr .65fr .55fr .55fr .8fr .7fr .55fr auto; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
