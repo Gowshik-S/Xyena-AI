@@ -1,0 +1,65 @@
+name: xyena-funder-marketplace-demo
+
+x-funder: &funder
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    FUNDER_DEMO_DATABASE_URL: postgresql+asyncpg://funder:${FUNDER_POSTGRES_PASSWORD:-change-me}@funder-postgres:5432/funder
+    FUNDER_DEMO_PUBLIC_MCP_URL: http://funder-marketplace:8093/mcp
+  networks:
+    - funder-internal
+    - xyena-backend
+
+services:
+  funder-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: funder
+      POSTGRES_USER: funder
+      POSTGRES_PASSWORD: ${FUNDER_POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - funder-postgres-data:/var/lib/postgresql/data
+    networks:
+      - funder-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U funder -d funder"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  funder-marketplace:
+    <<: *funder
+    restart: unless-stopped
+    depends_on:
+      funder-postgres:
+        condition: service_healthy
+    ports:
+      - "8093:8093"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *funder
+    profiles: ["registration"]
+    command: ["funder-marketplace-register"]
+    depends_on:
+      funder-marketplace:
+        condition: service_healthy
+
+networks:
+  funder-internal:
+    internal: true
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  funder-postgres-data:
+
