@@ -1,0 +1,42 @@
+name: xyena-bank-mcp-demo
+
+x-bank-demo: &bank-demo
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    BANK_DEMO_DATABASE_URL: sqlite+aiosqlite:////data/bank-demo.db
+  networks:
+    - xyena-backend
+
+services:
+  bank-demo:
+    <<: *bank-demo
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - bank-demo-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *bank-demo
+    profiles: ["registration"]
+    command: ["bank-mcp-register"]
+    depends_on:
+      bank-demo:
+        condition: service_healthy
+
+networks:
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  bank-demo-data:
