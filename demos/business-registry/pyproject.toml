@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xyena-synthetic-business-registry"
+version = "0.1.0"
+description = "Synthetic business identity registry with Guardian-governed read-only MCP evidence"
+requires-python = ">=3.12"
+dependencies = [
+  "aiosqlite>=0.20,<1",
+  "asyncpg>=0.30,<1",
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "mcp>=2,<3",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "python-dotenv>=1.0,<2",
+  "sqlalchemy[asyncio]>=2.0.36,<3",
+  "sse-starlette>=2.2,<4",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.scripts]
+business-registry-demo = "business_registry.main:run"
+registry-mcp-register = "business_registry.register:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["business_registry"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"frontend" = "business_registry/frontend"

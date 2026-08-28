@@ -13,6 +13,12 @@ MCP audience     xyena-demo-registry-mcp
 
 The Registry application is the authoritative demo source for business identity, legal status, ownership, registered addresses, directors/authorized persons and buyer-seller relationships.
 
+> **Implementation status:** The initial runnable service is implemented in
+> [`demos/business-registry`](../../demos/business-registry/README.md), including role-separated
+> identity workflows, history-preserving corrections, ownership/relationship evidence, a
+> professional multi-page admin interface, OpenAPI 3.1, six read-only MCP v2 tools and reviewed
+> Guardian registration. Real government connectivity remains explicitly out of scope.
+
 ## 2. Users and roles
 
 | Role | Capabilities |

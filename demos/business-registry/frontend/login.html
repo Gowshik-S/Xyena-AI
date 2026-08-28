@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Registry sign in · XYENA</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body data-page="login">
+  <main class="login-page">
+    <section class="login-panel">
+      <div class="login-brand"><span class="brand-seal">BR</span><span><strong>XYENA Business Registry</strong><small>Synthetic identity evidence office</small></span></div>
+      <div class="login-form">
+        <p class="eyebrow">Controlled registry access</p><h1>Open your registry desk</h1>
+        <p>This administration portal maintains synthetic business identity evidence for Xyena demonstrations. It does not contact a government registry.</p>
+        <form id="loginForm"><div class="field"><label for="email">Registry account</label><input id="email" type="email" autocomplete="username" required></div><div class="field"><label for="password">Demo password</label><input id="password" type="password" autocomplete="current-password" required></div><button class="primary-button" type="submit">Open registry desk</button><p class="form-message" id="loginMessage">Use the role-specific password configured for this service.</p></form>
+      </div>
+      <p class="login-footnote">Browser credentials cannot call MCP. Xyena uses a separate service credential and signed runtime scope.</p>
+    </section>
+    <section class="login-showcase">
+      <p class="eyebrow">Choose a demonstration role</p><h2>Legal identity changes only after a second pair of eyes.</h2>
+      <div class="account-list">
+        <button class="account-option" data-email="operator@registry.demo.xyena.test"><span><strong>Registry operator</strong><small>Creates pending businesses and proposes identity corrections</small></span><span class="status status-pending-review">Operator</span></button>
+        <button class="account-option" data-email="reviewer@registry.demo.xyena.test"><span><strong>Registry reviewer</strong><small>Activates, suspends, dissolves and reviews corrections</small></span><span class="status status-active">Reviewer</span></button>
+      </div>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

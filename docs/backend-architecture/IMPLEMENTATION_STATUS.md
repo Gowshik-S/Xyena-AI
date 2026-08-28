@@ -144,7 +144,7 @@ Before calling the deployment production-ready:
 
 ## Deliberately not implemented
 
-- runnable GST/e-Invoice, Delivery, Business Registry, Buyer/ERP, Funder, Ledger or dealer demos;
+- runnable Ledger or dealer demos;
 - real bank, Account Aggregator, payment-rail, lending, portfolio or DeFi integrations;
 - payment execution, balance mutation, beneficiary mutation, holds, reversals or real credentials in
   the synthetic bank demo;

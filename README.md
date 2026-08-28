@@ -10,11 +10,11 @@ The Xyena core backend, Guardian authorization plane, MCP registry/broker, agent
 context and memory, user-data services, migrations, containers and deployment manifests are
 implemented.
 
-Isolated synthetic bank and GST/e-Invoice demonstrations are implemented under `demos/`. The bank
-service provides consented evidence reads and transfer preparation only. The GST service provides a
-stateful multi-page portal, governed invoice lifecycle and read-only MCP evidence. Neither service
-connects to a real financial institution or government system. Delivery and the remaining external
-applications remain detailed implementation specifications, not runnable services.
+Isolated synthetic Bank, GST/e-Invoice, Buyer ERP, Delivery, Funder Marketplace and Business
+Registry demonstrations are implemented under `demos/`. They provide database-backed operational
+workflows and narrow MCP evidence without connecting to a real financial institution, government
+system or production ERP. Full Account Aggregator, Ledger/Payment and the remaining external
+applications remain implementation specifications rather than runnable services.
 
 See [Backend Implementation Status](./docs/backend-architecture/IMPLEMENTATION_STATUS.md) for the
 delivered checkpoints, deployment gates and explicit exclusions.
@@ -29,12 +29,19 @@ delivered checkpoints, deployment gates and explicit exclusions.
 | `apps/guardian` | deterministic policy, approvals and single-use exact-request authorization |
 | `demos/bank-mcp` | synthetic bank evidence/preparation MCP service and light operations frontend |
 | `demos/gst-portal` | synthetic GST/e-Invoice workflow, multi-page portal and read-only evidence MCP |
+| `demos/buyer-erp` | synthetic purchase-order, receipt, invoice-matching and acceptance evidence |
+| `demos/delivery-mcp` | synthetic delivery/fulfilment status and proof evidence MCP service |
+| `demos/funder-marketplace` | synthetic funding programs, offers, reservations and commitments |
+| `demos/business-registry` | synthetic legal identity, ownership and relationship evidence registry |
 | `migrations/versions` | PostgreSQL/pgvector schemas and tenant row-level security |
 
 For local core configuration and deployment, start with `.env.example`, `compose.yaml` and the
 [backend architecture](./docs/backend-architecture/README.md). Independent setup instructions are
-available for the [bank demo](./demos/bank-mcp/README.md) and
-[GST portal](./demos/gst-portal/README.md).
+available for the [bank demo](./demos/bank-mcp/README.md),
+[GST portal](./demos/gst-portal/README.md), [Buyer ERP](./demos/buyer-erp/README.md),
+[Delivery](./demos/delivery-mcp/README.md),
+[Funder Marketplace](./demos/funder-marketplace/README.md) and
+[Business Registry](./demos/business-registry/README.md).
 
 ## The problem
 
@@ -225,19 +232,20 @@ Bank/payment connector       → Guardian-authorized execution
 ## External live demo applications
 
 The target demonstration environment uses independent, database-backed applications on separate
-subdomains. The bank MCP demo is currently implemented; the remaining rows are build specifications.
+subdomains. Implemented rows link to their runnable application folders; remaining rows are build
+specifications.
 When implemented, updates must persist, emit transactional events, refresh connected UIs and
 immediately affect MCP results.
 
 | Application | Example subdomain | Status | Specification |
 |---|---|---|---|
-| Business Registry | `registry.demo.xyena.ai` | specified | [Registry app](./docs/ext-demo/BUSINESS_REGISTRY_APP.md) |
-| GST and e-Invoice | `gst.demo.xyena.ai` | specified | [GST/e-Invoice app](./docs/ext-demo/GST_EINVOICE_APP.md) |
-| Buyer and ERP | `erp.demo.xyena.ai` | specified | [Buyer/ERP app](./docs/ext-demo/BUYER_ERP_APP.md) |
-| Delivery and Fulfilment | `delivery.demo.xyena.ai` | specified | [Delivery app](./docs/ext-demo/DELIVERY_APP.md) |
+| Business Registry | `registry.demo.xyena.ai` | implemented | [Registry app](./demos/business-registry/README.md) |
+| GST and e-Invoice | `gst.demo.xyena.ai` | implemented | [GST/e-Invoice app](./demos/gst-portal/README.md) |
+| Buyer and ERP | `erp.demo.xyena.ai` | implemented | [Buyer/ERP app](./demos/buyer-erp/README.md) |
+| Delivery and Fulfilment | `delivery.demo.xyena.ai` | implemented | [Delivery app](./demos/delivery-mcp/README.md) |
 | Synthetic Bank MCP | `bank.demo.xyena.ai` | implemented | [Bank demo](./demos/bank-mcp/README.md) |
 | Bank and Account Aggregator target | `bank.demo.xyena.ai` | specified | [Bank/AA app](./docs/ext-demo/BANK_AA_APP.md) |
-| Funder Marketplace | `funder.demo.xyena.ai` | specified | [Funder app](./docs/ext-demo/FUNDER_MARKETPLACE_APP.md) |
+| Funder Marketplace | `funder.demo.xyena.ai` | implemented | [Funder app](./demos/funder-marketplace/README.md) |
 | Ledger and Payment Operations | `ledger.demo.xyena.ai` | specified | [Ledger app](./docs/ext-demo/LEDGER_PAYMENT_APP.md) |
 
 Start with the [External Demo Suite Overview](./docs/ext-demo/README.md) and [Shared Platform Requirements](./docs/ext-demo/SHARED_PLATFORM_REQUIREMENTS.md).
@@ -314,8 +322,8 @@ docs/
 └── architecture and MCP specifications
 ```
 
-GST, Delivery and other external-demo applications remain specified under `docs/ext-demo` until their
-runtime directories are implemented.
+External-demo specifications remain under `docs/ext-demo`; implemented applications have matching
+runtime directories under `demos/`.
 
 ## Documentation
 

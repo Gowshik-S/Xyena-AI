@@ -1,0 +1,64 @@
+name: xyena-business-registry-demo
+
+x-registry: &registry
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file:
+    - .env
+  environment:
+    REGISTRY_DEMO_DATABASE_URL: postgresql+asyncpg://registry:${REGISTRY_POSTGRES_PASSWORD:-change-me}@registry-postgres:5432/registry
+    REGISTRY_DEMO_PUBLIC_MCP_URL: http://business-registry:8093/mcp
+  networks:
+    - registry-internal
+    - xyena-backend
+
+services:
+  registry-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: registry
+      POSTGRES_USER: registry
+      POSTGRES_PASSWORD: ${REGISTRY_POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - registry-postgres-data:/var/lib/postgresql/data
+    networks:
+      - registry-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U registry -d registry"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  business-registry:
+    <<: *registry
+    restart: unless-stopped
+    depends_on:
+      registry-postgres:
+        condition: service_healthy
+    ports:
+      - "8093:8093"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  register:
+    <<: *registry
+    profiles: ["registration"]
+    command: ["registry-mcp-register"]
+    depends_on:
+      business-registry:
+        condition: service_healthy
+
+networks:
+  registry-internal:
+    internal: true
+  xyena-backend:
+    external: true
+    name: xyena-core_backend
+
+volumes:
+  registry-postgres-data:
