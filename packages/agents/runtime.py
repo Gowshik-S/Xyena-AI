@@ -96,15 +96,24 @@ class AgentRuntime:
         self.context_assembler = ContextAssembler()
 
     def _model(self) -> str | OpenAIChatCompletionsModel:
-        if self.settings.model_provider != "command_code":
+        if self.settings.model_provider == "openai":
             return self.settings.openai_model
-        api_key = self.settings.command_code_api_key
+
+        if self.settings.model_provider == "command_code":
+            api_key = self.settings.command_code_api_key
+            base_url = self.settings.command_code_base_url
+            provider_name = "Command Code"
+            headers = {"x-cmd-zdr": "1"} if self.settings.command_code_zdr else None
+        else:
+            api_key = self.settings.nvidia_nim_api_key
+            base_url = self.settings.nvidia_nim_base_url
+            provider_name = "NVIDIA NIM"
+            headers = None
         if api_key is None:
-            raise AgentRuntimeError("Command Code model provider is not configured.")
-        headers = {"x-cmd-zdr": "1"} if self.settings.command_code_zdr else None
+            raise AgentRuntimeError(f"{provider_name} model provider is not configured.")
         client = AsyncOpenAI(
             api_key=api_key.get_secret_value(),
-            base_url=str(self.settings.command_code_base_url).rstrip("/"),
+            base_url=str(base_url).rstrip("/"),
             default_headers=headers,
         )
         return OpenAIChatCompletionsModel(

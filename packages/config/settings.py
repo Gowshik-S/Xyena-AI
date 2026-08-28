@@ -21,10 +21,12 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     openai_model: str = "gpt-5.6-terra"
     openai_embedding_model: str = "text-embedding-3-small"
-    model_provider: Literal["openai", "command_code"] = "openai"
+    model_provider: Literal["openai", "command_code", "nvidia_nim"] = "openai"
     command_code_api_key: SecretStr | None = None
     command_code_base_url: AnyHttpUrl = "https://api.commandcode.ai/provider/v1"
     command_code_zdr: bool = True
+    nvidia_nim_api_key: SecretStr | None = None
+    nvidia_nim_base_url: AnyHttpUrl = "https://integrate.api.nvidia.com/v1"
 
     oidc_issuer: str = "https://identity.example.com"
     oidc_audience: str = "xyena-api"
@@ -59,6 +61,7 @@ class Settings(BaseSettings):
     @field_validator(
         "openai_api_key",
         "command_code_api_key",
+        "nvidia_nim_api_key",
         "service_token",
         "mcp_admin_token",
         "guardian_signing_key",
@@ -82,6 +85,8 @@ class Settings(BaseSettings):
     def model_api_key(self) -> SecretStr | None:
         if self.model_provider == "command_code":
             return self.command_code_api_key
+        if self.model_provider == "nvidia_nim":
+            return self.nvidia_nim_api_key
         return self.openai_api_key
 
 

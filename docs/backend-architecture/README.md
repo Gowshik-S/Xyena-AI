@@ -251,6 +251,14 @@ QUEUED
 
 State transitions use compare-and-set version numbers. Only one worker owns a run lease. Every transition emits an outbox event in the same database transaction.
 
+### 7.4 Model-provider adapter
+
+The runtime owns model-provider selection; agents never read API keys or choose endpoints. `XYENA_MODEL_PROVIDER` selects `openai`, `command_code`, or `nvidia_nim`. OpenAI uses the native SDK path. Command Code and NVIDIA NIM use the OpenAI-compatible Chat Completions adapter, while the surrounding Xyena run, PostgreSQL session, Guardian authorization, and MCP call pipeline remain provider-independent.
+
+For NVIDIA-hosted NIM, configure `XYENA_NVIDIA_NIM_API_KEY`, `XYENA_NVIDIA_NIM_BASE_URL=https://integrate.api.nvidia.com/v1`, and a tool-capable model identifier such as `openai/gpt-oss-20b` in `XYENA_OPENAI_MODEL`. Provider credentials belong only in the deployment secret environment; they must never be persisted in PostgreSQL, prompts, logs, catalog metadata, or browser code.
+
+Chat inference and memory embeddings are separate capabilities. Selecting NVIDIA NIM for chat does not silently redirect embedding requests. Durable PostgreSQL text memory remains available, while vector embedding jobs require a separately configured supported embedding provider.
+
 ## 8. Context and memory architecture
 
 ### 8.1 Four different concepts

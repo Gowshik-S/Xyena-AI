@@ -132,7 +132,7 @@ Before calling the deployment production-ready:
 3. Generate Guardian Ed25519 keys, store the private key only in Guardian, and distribute only the
    public verification key where verification is required. The shared environment template is for
    local orchestration; production should use per-workload secrets.
-4. Configure the OpenAI API key and a model supported by the target OpenAI-compatible endpoint.
+4. Configure one supported model provider (`openai`, `command_code`, or `nvidia_nim`), its secret API key, and a model supported by that provider's endpoint.
 5. Configure encrypted S3-compatible storage and bucket retention/lifecycle rules.
 6. Review and activate every external MCP server, tool schema version, egress host, risk class,
    policy, and agent grant. Discovered tools start pending review.

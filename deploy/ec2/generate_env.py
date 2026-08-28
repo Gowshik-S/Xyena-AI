@@ -79,6 +79,8 @@ def main() -> None:
         "XYENA_COMMAND_CODE_API_KEY": os.getenv("COMMAND_CODE_API_KEY", ""),
         "XYENA_COMMAND_CODE_BASE_URL": "https://api.commandcode.ai/provider/v1",
         "XYENA_COMMAND_CODE_ZDR": "true",
+        "XYENA_NVIDIA_NIM_API_KEY": os.getenv("NVIDIA_API_KEY", ""),
+        "XYENA_NVIDIA_NIM_BASE_URL": "https://integrate.api.nvidia.com/v1",
         "XYENA_OIDC_ISSUER": "https://identity.gowshik.in",
         "XYENA_OIDC_AUDIENCE": "xyena-api",
         "XYENA_OIDC_JWKS_URL": "",
