@@ -1,0 +1,388 @@
+name: xyena-platform
+
+x-core: &core
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  restart: unless-stopped
+  networks: [platform]
+
+x-bank: &bank
+  build: ./demos/bank-mcp
+  env_file: .env
+  networks: [platform]
+
+x-gst: &gst
+  build: ./demos/gst-portal
+  env_file: .env
+  networks: [platform]
+
+x-erp: &erp
+  build: ./demos/buyer-erp
+  env_file: .env
+  networks: [platform]
+
+x-registry: &registry
+  build: ./demos/business-registry
+  env_file: .env
+  networks: [platform]
+
+x-funder: &funder
+  build: ./demos/funder-marketplace
+  env_file: .env
+  networks: [platform]
+
+x-delivery: &delivery
+  build: ./demos/delivery-mcp
+  env_file: .env
+  networks: [platform]
+
+x-ledger: &ledger
+  build: ./demos/ledger-payment
+  env_file: .env
+  networks: [platform]
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: xyena
+      POSTGRES_USER: xyena
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      BANK_DB_PASSWORD: ${BANK_DB_PASSWORD:?set BANK_DB_PASSWORD}
+      GST_DB_PASSWORD: ${GST_DB_PASSWORD:?set GST_DB_PASSWORD}
+      ERP_DB_PASSWORD: ${ERP_DB_PASSWORD:?set ERP_DB_PASSWORD}
+      REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?set REGISTRY_DB_PASSWORD}
+      FUNDER_DB_PASSWORD: ${FUNDER_DB_PASSWORD:?set FUNDER_DB_PASSWORD}
+      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?set DELIVERY_DB_PASSWORD}
+      LEDGER_DB_PASSWORD: ${LEDGER_DB_PASSWORD:?set LEDGER_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/ec2/postgres/init-multi-db.sh:/docker-entrypoint-initdb.d/10-multi-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xyena -d xyena"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [platform]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [platform]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    volumes:
+      - object-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [platform]
+
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - >-
+        mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD";
+        mc mb --ignore-existing local/xyena-artifacts;
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    networks: [platform]
+
+  migrate:
+    <<: *core
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  guardian:
+    <<: *core
+    command: ["python", "-m", "apps.guardian.main"]
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  mcp-server:
+    <<: *core
+    command: ["python", "-m", "apps.mcp_server.main"]
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api:
+    <<: *core
+    command: ["python", "-m", "apps.api.main"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      guardian:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    <<: *core
+    command: ["python", "-m", "apps.worker.main"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      guardian:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build: ./apps/web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4173:4173"
+    networks: [platform]
+
+  bank-demo:
+    <<: *bank
+    restart: unless-stopped
+    environment:
+      BANK_DEMO_DATABASE_URL: postgresql+asyncpg://bank_app:${BANK_DB_PASSWORD}@postgres:5432/bank_demo
+    ports: ["127.0.0.1:8090:8090"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  gst-portal:
+    <<: *gst
+    restart: unless-stopped
+    environment:
+      GST_PORTAL_DATABASE_URL: postgresql+asyncpg://gst_app:${GST_DB_PASSWORD}@postgres:5432/gst_demo
+    ports: ["127.0.0.1:8091:8091"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  buyer-erp:
+    <<: *erp
+    restart: unless-stopped
+    environment:
+      ERP_DEMO_DATABASE_URL: postgresql+asyncpg://erp_app:${ERP_DB_PASSWORD}@postgres:5432/erp_demo
+    ports: ["127.0.0.1:8092:8092"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gst-portal:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  business-registry:
+    <<: *registry
+    restart: unless-stopped
+    environment:
+      REGISTRY_DEMO_DATABASE_URL: postgresql+asyncpg://registry_app:${REGISTRY_DB_PASSWORD}@postgres:5432/registry_demo
+    ports: ["127.0.0.1:8093:8093"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  funder-marketplace:
+    <<: *funder
+    restart: unless-stopped
+    environment:
+      FUNDER_DEMO_DATABASE_URL: postgresql+asyncpg://funder_app:${FUNDER_DB_PASSWORD}@postgres:5432/funder_demo
+    ports: ["127.0.0.1:8094:8094"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8094/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  delivery-demo:
+    <<: *delivery
+    restart: unless-stopped
+    environment:
+      DELIVERY_DEMO_DATABASE_URL: postgresql+asyncpg://delivery_app:${DELIVERY_DB_PASSWORD}@postgres:5432/delivery_demo
+    ports: ["127.0.0.1:8095:8095"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  ledger-payment:
+    <<: *ledger
+    restart: unless-stopped
+    environment:
+      LEDGER_DEMO_DATABASE_URL: postgresql+asyncpg://ledger_app:${LEDGER_DB_PASSWORD}@postgres:5432/ledger_demo
+    ports: ["127.0.0.1:8096:8096"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8096/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  register-bank:
+    <<: *bank
+    profiles: [registration]
+    restart: "no"
+    command: ["bank-mcp-register"]
+    depends_on:
+      bank-demo:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-gst:
+    <<: *gst
+    profiles: [registration]
+    restart: "no"
+    command: ["gst-mcp-register"]
+    depends_on:
+      gst-portal:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-erp:
+    <<: *erp
+    profiles: [registration]
+    restart: "no"
+    command: ["buyer-erp-register"]
+    depends_on:
+      buyer-erp:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-registry:
+    <<: *registry
+    profiles: [registration]
+    restart: "no"
+    command: ["registry-mcp-register"]
+    depends_on:
+      business-registry:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-funder:
+    <<: *funder
+    profiles: [registration]
+    restart: "no"
+    command: ["funder-marketplace-register"]
+    depends_on:
+      funder-marketplace:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-delivery:
+    <<: *delivery
+    profiles: [registration]
+    restart: "no"
+    command: ["delivery-mcp-register"]
+    depends_on:
+      delivery-demo:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  register-ledger:
+    <<: *ledger
+    profiles: [registration]
+    restart: "no"
+    command: ["ledger-payment-register"]
+    depends_on:
+      ledger-payment:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+networks:
+  platform:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  object-data:

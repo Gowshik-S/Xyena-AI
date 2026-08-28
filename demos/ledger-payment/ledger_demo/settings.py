@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ui_token: SecretStr
     settlement_event_token: SecretStr
     host: str = "0.0.0.0"
-    port: int = 8095
+    port: int = 8096
 
 
 @lru_cache(maxsize=1)

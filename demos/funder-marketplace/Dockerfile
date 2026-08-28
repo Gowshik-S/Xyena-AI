@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir .
 RUN chown -R funder:funder /app
 USER funder
 
-EXPOSE 8093
+EXPOSE 8094
 
 CMD ["funder-marketplace-demo"]
 

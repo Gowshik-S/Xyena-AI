@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     execution_token: SecretStr
     event_secret: SecretStr
     host: str = "0.0.0.0"
-    port: int = 8093
+    port: int = 8094
 
 
 @lru_cache(maxsize=1)

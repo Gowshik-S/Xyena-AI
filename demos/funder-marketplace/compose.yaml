@@ -8,7 +8,7 @@ x-funder: &funder
     - .env
   environment:
     FUNDER_DEMO_DATABASE_URL: postgresql+asyncpg://funder:${FUNDER_POSTGRES_PASSWORD:-change-me}@funder-postgres:5432/funder
-    FUNDER_DEMO_PUBLIC_MCP_URL: http://funder-marketplace:8093/mcp
+    FUNDER_DEMO_PUBLIC_MCP_URL: http://funder-marketplace:8094/mcp
   networks:
     - funder-internal
     - xyena-backend
@@ -38,9 +38,9 @@ services:
       funder-postgres:
         condition: service_healthy
     ports:
-      - "8093:8093"
+      - "8094:8094"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health/ready')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8094/health/ready')"]
       interval: 10s
       timeout: 5s
       retries: 10
