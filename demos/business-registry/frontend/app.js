@@ -150,6 +150,32 @@ async function initBusinesses() {
 
 async function initBusinessNew() {
   byId("incorporationDate").value = new Date().toISOString().slice(0, 10);
+  byId("autoFillBusinessButton").addEventListener("click", () => {
+    const uniqueNumber = String(Date.now() % 10000000).padStart(7, "0");
+    const shortNumber = uniqueNumber.slice(-4);
+    const demoValues = {
+      registryNumber: `U28999KA2026PTC${uniqueNumber}`,
+      businessId: `biz_demo_veda_${uniqueNumber}`,
+      businessTypeInput: "COMPANY",
+      legalName: `Veda Precision Works ${shortNumber} Private Limited`,
+      tradeName: `Veda Works ${shortNumber}`,
+      incorporationDate: "2022-04-18",
+      primaryGstin: `29XYENA${uniqueNumber}Z`,
+      industryCode: "C2599",
+      msmeClass: "MICRO",
+      stateCode: "29",
+      postalCode: "560058",
+      addressLine1: "42 Peenya Industrial Estate, Phase 2",
+      city: "Bengaluru",
+    };
+    Object.entries(demoValues).forEach(([id, value]) => {
+      const field = byId(id);
+      field.value = value;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    toast("Every business field has been filled with a unique synthetic record.");
+  });
   byId("businessForm").addEventListener("submit", async event => {
     event.preventDefault();
     const payload = {

@@ -80,6 +80,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .panel { min-width: 0; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); }
 .panel-full { grid-column: 1 / -1; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 65px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.panel-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 .panel-note { color: var(--muted); font-size: 10px; }
 .panel-body { padding: 18px; }
 .table-wrap { overflow-x: auto; }
@@ -177,6 +178,7 @@ td small { margin-top: 2px; color: var(--muted); }
   .registry-rail nav { grid-template-columns: 1fr 1fr; }
   .workspace { padding: 24px 15px 48px; }
   .workspace-header, .page-intro, .folio { align-items: start; display: flex; flex-direction: column; }
+  .panel-header-actions { align-items: flex-end; flex-direction: column; }
   .folio-number { text-align: left; }
   .detail-grid { grid-template-columns: 1fr 1fr; }
   .login-page { grid-template-columns: 1fr; }
