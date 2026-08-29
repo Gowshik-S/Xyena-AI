@@ -32,7 +32,8 @@ class _BusinessFormParser(HTMLParser):
 
 def test_autofill_covers_every_business_entry_field() -> None:
     parser = _BusinessFormParser()
-    parser.feed((FRONTEND / "business-new.html").read_text(encoding="utf-8"))
+    page = (FRONTEND / "business-new.html").read_text(encoding="utf-8")
+    parser.feed(page)
     script = (FRONTEND / "app.js").read_text(encoding="utf-8")
 
     demo_values = re.search(
@@ -46,3 +47,4 @@ def test_autofill_covers_every_business_entry_field() -> None:
     assert parser.autofill_button is not None
     assert parser.autofill_button.get("type") == "button"
     assert autofilled_ids == parser.field_ids
+    assert 'src="/assets/app.js?v=' in page
