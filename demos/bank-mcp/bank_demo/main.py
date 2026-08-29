@@ -16,7 +16,7 @@ from .mcp import mcp, mcp_app
 from .models import (
     AAConsent, Account, AccountHold, AuditEvent, Beneficiary,
     FinancialInformationRequest, PreparedReversal, PreparedTransfer,
-    Transaction, TransferExecution,
+    LedgerEntry, Transaction, TransferExecution,
 )
 from .seed import (
     DEMO_ORGANIZATION_ID,
@@ -165,6 +165,10 @@ def create_app() -> FastAPI:
             executions = (await db.scalars(select(TransferExecution)
                                            .order_by(TransferExecution.created_at.desc())
                                            .limit(12))).all()
+            ledger_entries = (await db.scalars(select(LedgerEntry)
+                                               .order_by(LedgerEntry.created_at.desc(),
+                                                         LedgerEntry.line_number.asc())
+                                               .limit(24))).all()
             holds = (await db.scalars(select(AccountHold)
                                       .order_by(AccountHold.created_at.desc()).limit(12))).all()
             reversals = (await db.scalars(select(PreparedReversal)
@@ -242,8 +246,19 @@ def create_app() -> FastAPI:
             "transfer_executions": [
                 {"execution_id": value.execution_id, "proposed_action_id": value.proposed_action_id,
                  "amount": str(value.amount), "currency": value.currency,
-                 "bank_reference": value.bank_reference, "status": value.status}
+                 "bank_reference": value.bank_reference, "status": value.status,
+                 "canonical_action_hash": value.canonical_action_hash,
+                 "guardian_decision_id": value.guardian_decision_id,
+                 "authorization_consumed": True,
+                 "settled_at": value.settled_at.isoformat() if value.settled_at else None}
                 for value in executions
+            ],
+            "ledger_entries": [
+                {"execution_id": value.execution_id, "journal_id": value.journal_id,
+                 "line_number": value.line_number, "ledger_account": value.ledger_account,
+                 "entry_type": value.entry_type, "amount": str(value.amount),
+                 "currency": value.currency}
+                for value in ledger_entries
             ],
             "holds": [
                 {"hold_id": value.hold_id, "account_token": value.account_token,

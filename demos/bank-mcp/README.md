@@ -13,7 +13,7 @@ beneficiary or payment rail.
 | `/transactions` | Consented transaction evidence |
 | `/beneficiaries` | Masked beneficiary verification |
 | `/account-aggregator` | Consent and FI-request register |
-| `/payment-operations` | Settlements, references and holds |
+| `/payment-operations` | Settlements, authorization seals, balanced journals and holds |
 | `/prepared-actions` | Canonical exact-action proposals |
 | `/mcp-connection` | 19-tool reviewed MCP catalog |
 | `/docs` | OpenAPI 3.1 contract |
@@ -32,7 +32,7 @@ Xyena agent → MCP broker → Guardian decision + single-use consume
                               ↓
 Bank rechecks action hash, expiry, beneficiary, balance and limits
                               ↓
-account + transaction + execution + audit + outbox commit together
+account + transaction + double-entry journal + execution + audit + outbox commit together
 ```
 
 AA consent is separate from payment authority. Consents are account-, purpose-, information-type-
@@ -40,7 +40,9 @@ and time-scoped and revocable. FI fetches are idempotent and return evidence rec
 tools uniquely persist the Guardian call ID and reject action-hash or parameter drift. Unknown
 results must be reconciled and are never blindly retried.
 
-Transfers produce random-looking 10-character synthetic references. Holds adjust available rather
+Transfers produce random-looking 10-character synthetic references and a balanced debit/credit
+journal in the same database transaction. The operations dashboard shows the consumed Guardian
+authorization seal and ledger evidence read-only. Holds adjust available rather
 than current balance. Reversals require reviewer approval plus Guardian and create a compensating
 credit transaction. PostgreSQL is supported with `asyncpg`; SQLite remains the local default.
 

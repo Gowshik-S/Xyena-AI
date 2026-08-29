@@ -107,8 +107,13 @@ function renderData(data) {
 
   const executionRows = byId("executionRows");
   if (executionRows) executionRows.innerHTML = data.transfer_executions.length ? data.transfer_executions.map((item) => `
-    <tr><td><code>${escapeHtml(item.execution_id)}</code></td><td><code>${escapeHtml(item.bank_reference || "—")}</code></td><td class="align-right"><strong>${money(item.amount, item.currency)}</strong></td><td><span class="status status-safe">${escapeHtml(item.status)}</span></td></tr>
-  `).join("") : '<tr><td class="empty" colspan="4">No Guardian-authorized transfer has settled.</td></tr>';
+    <tr><td><code>${escapeHtml(item.execution_id)}</code></td><td><code>${escapeHtml(item.bank_reference || "—")}</code></td><td><span class="status ${item.authorization_consumed ? "status-safe" : "status-review"}" title="${escapeHtml(item.guardian_decision_id || "")}">${item.authorization_consumed ? "Consumed" : "Missing"}</span></td><td class="align-right"><strong>${money(item.amount, item.currency)}</strong></td><td><span class="status status-safe">${escapeHtml(item.status)}</span></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No Guardian-authorized transfer has settled.</td></tr>';
+
+  const ledgerRows = byId("ledgerRows");
+  if (ledgerRows) ledgerRows.innerHTML = data.ledger_entries.length ? data.ledger_entries.map((item) => `
+    <tr><td><code>${escapeHtml(item.journal_id)}</code></td><td><code>${escapeHtml(item.execution_id)}</code></td><td>${escapeHtml(item.ledger_account)}</td><td><span class="direction direction-${item.entry_type.toLowerCase()}">${escapeHtml(item.entry_type)}</span></td><td class="align-right"><strong>${money(item.amount, item.currency)}</strong></td></tr>
+  `).join("") : '<tr><td class="empty" colspan="5">No settlement journal has been posted.</td></tr>';
 
   const holdRows = byId("holdRows");
   if (holdRows) holdRows.innerHTML = data.holds.length ? data.holds.map((item) => `

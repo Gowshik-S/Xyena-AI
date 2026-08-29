@@ -13,7 +13,7 @@ from .database import session
 from .models import (
     AAConsent, Account, AccountHold, AuditEvent, BankOutboxEvent, Beneficiary,
     FinancialInformationRequest, PreparedBeneficiaryChange, PreparedReversal,
-    PreparedTransfer, Transaction, TransferExecution,
+    LedgerEntry, PreparedTransfer, Transaction, TransferExecution,
 )
 from .security import BankDemoSecurityError, RuntimeScope
 from .settings import get_settings
@@ -272,6 +272,7 @@ class BankDemoService:
             account.current_balance -= prepared.amount
             account.available_balance -= prepared.amount
             prepared.status = "SETTLED"
+            journal_id = f"jrn_{uuid4().hex[:18]}"
             value = TransferExecution(
                 id=str(uuid4()), execution_id=execution_id, tenant_id=scope.tenant_id,
                 user_id=scope.user_id, proposed_action_id=proposed_action_id,
@@ -279,12 +280,32 @@ class BankDemoService:
                 guardian_call_id=scope.call_id, request_hash=scope.request_hash,
                 amount=prepared.amount, currency=prepared.currency, bank_reference=reference,
                 status="SETTLED", settled_at=datetime.now(UTC))
+            ledger = [
+                LedgerEntry(
+                    id=str(uuid4()), tenant_id=scope.tenant_id, execution_id=execution_id,
+                    journal_id=journal_id, line_number=1,
+                    ledger_account="DISBURSEMENT_CLEARING", entry_type="DEBIT",
+                    amount=prepared.amount, currency=prepared.currency,
+                ),
+                LedgerEntry(
+                    id=str(uuid4()), tenant_id=scope.tenant_id, execution_id=execution_id,
+                    journal_id=journal_id, line_number=2,
+                    ledger_account="BANK_CASH_CONTROL", entry_type="CREDIT",
+                    amount=prepared.amount, currency=prepared.currency,
+                ),
+            ]
             db.add_all([value, Transaction(
                 id=str(uuid4()), account_token=account.account_token, booked_on=date.today(),
                 direction="DEBIT", amount=prepared.amount, currency=prepared.currency,
                 category="GUARDIAN_PAYMENT", description="Guardian-authorized synthetic transfer",
-                reference=reference)])
+                reference=reference), *ledger])
             payload = self._execution_projection(value)
+            payload.update({
+                "journal_id": journal_id,
+                "ledger_balanced": True,
+                "authorization_consumed": scope.authorization_consumed,
+                "guardian_decision_id": scope.guardian_decision_id,
+            })
             self._event(db, scope.tenant_id, "TRANSFER", execution_id, "bank.transfer.settled", payload)
             self._audit(db, scope, "SETTLED", payload)
             return payload
@@ -598,6 +619,8 @@ class BankDemoService:
                 "amount": str(value.amount), "currency": value.currency,
                 "bank_reference": value.bank_reference,
                 "settled_at": value.settled_at.isoformat() if value.settled_at else None,
+                "guardian_decision_id": value.guardian_decision_id,
+                "authorization_consumed": True,
                 "security_flags": ["SYNTHETIC_DATA", "GUARDIAN_AUTHORIZED"]}
 
     @staticmethod

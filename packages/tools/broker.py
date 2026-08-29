@@ -409,6 +409,7 @@ class ToolBroker:
                     if call.guardian_decision_id else None,
                     "authorization_id": str(call.authorization_id)
                     if call.authorization_id else None,
+                    "authorization_consumed": bool(call.authorization_id),
                 }
                 projection = await self.remote_client.call_tool(
                     remote_config,

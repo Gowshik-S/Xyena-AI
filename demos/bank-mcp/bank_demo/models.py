@@ -166,6 +166,24 @@ class TransferExecution(Base):
     settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class LedgerEntry(Base):
+    __tablename__ = "ledger_entries"
+    __table_args__ = (UniqueConstraint("journal_id", "line_number"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    execution_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    journal_id: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    line_number: Mapped[int] = mapped_column(nullable=False)
+    ledger_account: Mapped[str] = mapped_column(String(80), nullable=False)
+    entry_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
 class AccountHold(Base):
     __tablename__ = "account_holds"
     __table_args__ = (
