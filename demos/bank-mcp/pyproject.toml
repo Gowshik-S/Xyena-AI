@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xyena-synthetic-bank-mcp-demo"
-version = "0.1.0"
-description = "Isolated synthetic bank evidence and transfer-preparation MCP demo for Xyena"
+version = "0.2.0"
+description = "Guardian-authorized synthetic bank transfer and settlement MCP demo for Xyena"
 requires-python = ">=3.12"
 dependencies = [
   "aiosqlite>=0.20,<1",
   "fastapi>=0.115,<1",
   "httpx>=0.28,<1",
-  "httpx2>=0.1,<1",
+  "httpx2>=2.12,<3",
   "mcp>=2,<3",
   "pydantic>=2.10,<3",
   "pydantic-settings>=2.7,<3",

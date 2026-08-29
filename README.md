@@ -11,7 +11,8 @@ context and memory, user-data services, migrations, containers and deployment ma
 implemented.
 
 Isolated synthetic bank and GST/e-Invoice demonstrations are implemented under `demos/`. The bank
-service provides consented evidence reads and transfer preparation only. The GST service provides a
+service provides consented evidence reads plus Guardian-authorized synthetic transfer execution,
+balance mutation, double-entry posting and reconciliation. The GST service provides a
 stateful multi-page portal, governed invoice lifecycle and read-only MCP evidence. Neither service
 connects to a real financial institution or government system. Delivery and the remaining external
 applications remain detailed implementation specifications, not runnable services.
@@ -27,7 +28,7 @@ delivered checkpoints, deployment gates and explicit exclusions.
 | `apps/worker` | durable agent jobs, approval resume, embeddings, recovery and outbox delivery |
 | `apps/mcp_server` | hosted MCP, reviewed remote discovery, canonical broker and Guardian-routed calls |
 | `apps/guardian` | deterministic policy, approvals and single-use exact-request authorization |
-| `demos/bank-mcp` | synthetic bank evidence/preparation MCP service and light operations frontend |
+| `demos/bank-mcp` | synthetic bank evidence, protected transfer execution, ledger and live operations frontend |
 | `demos/gst-portal` | synthetic GST/e-Invoice workflow, multi-page portal and read-only evidence MCP |
 | `migrations/versions` | PostgreSQL/pgvector schemas and tenant row-level security |
 

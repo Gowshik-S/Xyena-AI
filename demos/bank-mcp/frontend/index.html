@@ -10,7 +10,7 @@
 <body>
   <div class="environment-strip">
     <span class="environment-dot" aria-hidden="true"></span>
-    Synthetic demonstration environment — no real financial institution or payment rail is connected
+    Synthetic settlement environment — Guardian controls are real; funds and bank references are not
   </div>
 
   <div class="app-shell">
@@ -26,13 +26,14 @@
         <a class="nav-link" href="#transactions">Transactions</a>
         <a class="nav-link" href="#beneficiaries">Beneficiaries</a>
         <a class="nav-link" href="#prepared-actions">Prepared actions</a>
+        <a class="nav-link" href="#settlement">Settlement</a>
         <a class="nav-link" href="#mcp-tools">MCP connection</a>
       </nav>
 
       <div class="boundary-card">
         <span class="boundary-icon">✓</span>
-        <strong>Execution disabled</strong>
-        <p>This service prepares action hashes. It cannot move funds or change balances.</p>
+        <strong>Guardian-gated execution</strong>
+        <p>Synthetic balances move only after an exact authorization is approved and consumed.</p>
       </div>
     </aside>
 
@@ -50,7 +51,7 @@
       <section class="access-panel" id="overview">
         <div>
           <h2>Connect to the demonstration dataset</h2>
-          <p>The dashboard credential is separate from the MCP workload credential.</p>
+          <p>Observe committed bank state here. Transfer commands enter only through MCP and Guardian.</p>
         </div>
         <form id="accessForm">
           <label class="sr-only" for="token">Dashboard token</label>
@@ -79,7 +80,12 @@
         <article class="metric-card">
           <span class="metric-label">Prepared actions</span>
           <strong id="actionCount">—</strong>
-          <small>Preparation only; never executed here</small>
+          <small>Exact hashes awaiting or completing control</small>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Settled transfers</span>
+          <strong id="settledCount">—</strong>
+          <small id="settledVolume">No synthetic settlement loaded</small>
         </article>
       </section>
 
@@ -117,9 +123,11 @@
             <div><p class="section-label">Governance</p><h2>Control posture</h2></div>
           </div>
           <dl class="control-list">
-            <div><dt>Payment execution</dt><dd class="status status-safe">Disabled</dd></div>
+            <div><dt>Payment execution</dt><dd class="status status-review">Guardian only</dd></div>
+            <div><dt>Settlement rail</dt><dd>Synthetic, immediate</dd></div>
             <div><dt>Runtime scope</dt><dd>HMAC signed</dd></div>
             <div><dt>Tool governance</dt><dd>Guardian routed</dd></div>
+            <div><dt>Live updates</dt><dd>SSE connected</dd></div>
             <div><dt>Audit events</dt><dd id="auditCount">—</dd></div>
             <div><dt>Data class</dt><dd>Synthetic only</dd></div>
           </dl>
@@ -128,13 +136,34 @@
         <article class="panel panel-full" id="prepared-actions">
           <div class="panel-header">
             <div><p class="section-label">Canonical proposals</p><h2>Prepared actions</h2></div>
-            <span class="panel-note">Expires in 15 minutes · execution unavailable</span>
+            <span class="panel-note">Expires in 15 minutes · execution requires human Guardian approval</span>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Action</th><th>Canonical hash</th><th>Amount</th><th>Status</th></tr></thead>
-              <tbody id="actionRows"><tr><td class="empty" colspan="4">No action has been prepared through MCP.</td></tr></tbody>
+              <thead><tr><th>Action</th><th>Canonical hash</th><th>Amount</th><th>Status</th><th>Execution</th></tr></thead>
+              <tbody id="actionRows"><tr><td class="empty" colspan="5">No action has been prepared through MCP.</td></tr></tbody>
             </table>
+          </div>
+        </article>
+
+        <article class="panel panel-full" id="settlement">
+          <div class="panel-header">
+            <div><p class="section-label">Authorization seal</p><h2>Exact-action settlement chain</h2></div>
+            <span class="panel-note" id="settlementNote">Waiting for a settled transfer</span>
+          </div>
+          <div class="settlement-layout">
+            <div id="authorizationSeal" class="authorization-seal">
+              <p class="empty-block">A settled transfer will reveal its preparation, Guardian, execution and reconciliation chain.</p>
+            </div>
+            <div class="ledger-panel">
+              <div class="ledger-title"><h3>Balanced journal</h3><span id="journalBalance">No journal</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Journal</th><th>Account</th><th>Entry</th><th>Amount</th></tr></thead>
+                  <tbody id="ledgerRows"><tr><td class="empty" colspan="4">No ledger entries committed.</td></tr></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </article>
 

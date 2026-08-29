@@ -9,7 +9,17 @@ from uuid import uuid4
 from sqlalchemy import func, select
 
 from .database import session
-from .models import Account, AuditEvent, Beneficiary, Consent, PreparedTransfer, Transaction
+from .events import demo_events
+from .models import (
+    Account,
+    AuditEvent,
+    Beneficiary,
+    Consent,
+    LedgerEntry,
+    PreparedTransfer,
+    Transaction,
+    TransferExecution,
+)
 from .security import BankDemoSecurityError, RuntimeScope
 from .settings import get_settings
 
@@ -159,8 +169,9 @@ class BankDemoService:
                 "per_transfer": str(account.per_transfer_limit),
                 "per_day": str(account.daily_limit),
                 "allowed_rails": ["DEMO_BANK_RAIL"],
-                "execution_available": False,
-                "security_flags": ["SYNTHETIC_DATA", "PREPARATION_ONLY"],
+                "execution_available": True,
+                "execution_mode": "SYNTHETIC_GUARDIAN_AUTHORIZED",
+                "security_flags": ["SYNTHETIC_DATA", "GUARDIAN_AUTH_REQUIRED"],
             }
             self._audit(db, scope, "SUCCESS", {"account_token": account.account_token})
             return result
@@ -272,9 +283,7 @@ class BankDemoService:
             await db.flush()
             return self._prepared_projection(value)
 
-    async def transfer_status(
-        self, scope: RuntimeScope, proposed_action_id: str
-    ) -> dict[str, Any]:
+    async def transfer_status(self, scope: RuntimeScope, proposed_action_id: str) -> dict[str, Any]:
         async with session() as db:
             value = await db.scalar(
                 select(PreparedTransfer).where(
@@ -291,8 +300,246 @@ class BankDemoService:
             if value.status == "READY_FOR_GUARDIAN" and expires_at <= datetime.now(UTC):
                 value.status = "EXPIRED"
             result = self._prepared_projection(value)
+            execution = await db.scalar(
+                select(TransferExecution).where(
+                    TransferExecution.proposed_action_id == proposed_action_id,
+                    TransferExecution.tenant_id == scope.tenant_id,
+                )
+            )
+            if execution is not None:
+                ledger_entries = (
+                    await db.scalars(
+                        select(LedgerEntry)
+                        .where(LedgerEntry.execution_id == execution.execution_id)
+                        .order_by(LedgerEntry.line_number)
+                    )
+                ).all()
+                result["execution"] = self._execution_projection(execution, ledger_entries)
             self._audit(db, scope, "SUCCESS", {"proposed_action_id": proposed_action_id})
             return result
+
+    async def execute_transfer(
+        self,
+        scope: RuntimeScope,
+        proposed_action_id: str,
+        client_idempotency_key: str,
+    ) -> dict[str, Any]:
+        if (
+            not scope.authorization_consumed
+            or not scope.authorization_id
+            or not scope.guardian_decision_id
+        ):
+            raise BankDemoSecurityError(
+                "A consumed exact-action Guardian authorization is required for execution."
+            )
+        if not 8 <= len(client_idempotency_key) <= 200:
+            raise BankDemoDomainError("client_idempotency_key must contain 8 to 200 characters.")
+
+        result: dict[str, Any]
+        async with session() as db:
+            prepared = await db.scalar(
+                select(PreparedTransfer)
+                .where(
+                    PreparedTransfer.proposed_action_id == proposed_action_id,
+                    PreparedTransfer.tenant_id == scope.tenant_id,
+                    PreparedTransfer.user_id == scope.user_id,
+                )
+                .with_for_update()
+            )
+            if prepared is None:
+                raise BankDemoDomainError("Prepared transfer was not found in the signed scope.")
+
+            existing = await db.scalar(
+                select(TransferExecution).where(
+                    TransferExecution.proposed_action_id == proposed_action_id,
+                    TransferExecution.tenant_id == scope.tenant_id,
+                )
+            )
+            if existing is not None:
+                if (
+                    existing.idempotency_key != client_idempotency_key
+                    or existing.canonical_action_hash != prepared.canonical_action_hash
+                ):
+                    raise BankDemoDomainError(
+                        "The transfer was already executed with different idempotency data."
+                    )
+                entries = (
+                    await db.scalars(
+                        select(LedgerEntry)
+                        .where(LedgerEntry.execution_id == existing.execution_id)
+                        .order_by(LedgerEntry.line_number)
+                    )
+                ).all()
+                self._audit(
+                    db,
+                    scope,
+                    "IDEMPOTENT_REPLAY",
+                    {"execution_id": existing.execution_id},
+                )
+                return self._execution_projection(existing, entries)
+
+            authorization_replay = await db.scalar(
+                select(TransferExecution).where(
+                    TransferExecution.authorization_id == scope.authorization_id
+                )
+            )
+            if authorization_replay is not None:
+                raise BankDemoSecurityError(
+                    "The Guardian authorization was already bound to another execution."
+                )
+            if prepared.idempotency_key != client_idempotency_key:
+                raise BankDemoDomainError(
+                    "Execution idempotency key does not match the prepared action."
+                )
+            expires_at = prepared.expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            if expires_at <= datetime.now(UTC):
+                prepared.status = "EXPIRED"
+                raise BankDemoDomainError("The prepared transfer has expired.")
+            if prepared.status != "READY_FOR_GUARDIAN":
+                raise BankDemoDomainError(
+                    f"Prepared transfer cannot execute from status {prepared.status}."
+                )
+
+            expected_hash = self._hash(self._action_document(prepared))
+            if not hmac.compare_digest(expected_hash, prepared.canonical_action_hash):
+                raise BankDemoSecurityError(
+                    "The stored transfer no longer matches its canonical action hash."
+                )
+
+            account = await db.scalar(
+                select(Account)
+                .where(
+                    Account.account_token == prepared.source_account_token,
+                    Account.tenant_id == scope.tenant_id,
+                    Account.user_id == scope.user_id,
+                    Account.status == "ACTIVE",
+                )
+                .with_for_update()
+            )
+            if account is None:
+                raise BankDemoDomainError("Source account is not active in the signed scope.")
+            beneficiary = await db.scalar(
+                select(Beneficiary).where(
+                    Beneficiary.beneficiary_token == prepared.beneficiary_token,
+                    Beneficiary.tenant_id == scope.tenant_id,
+                )
+            )
+            if beneficiary is None or not beneficiary.verified or beneficiary.status != "ACTIVE":
+                raise BankDemoDomainError("Beneficiary is no longer verified and active.")
+            if prepared.currency != account.currency or prepared.currency != beneficiary.currency:
+                raise BankDemoDomainError(
+                    "Transfer currency no longer matches the account records."
+                )
+            if prepared.amount > account.per_transfer_limit:
+                raise BankDemoDomainError("Amount exceeds the current per-transfer limit.")
+            if prepared.amount > account.available_balance:
+                raise BankDemoDomainError("Available balance is insufficient at execution time.")
+
+            day_start = datetime.combine(date.today(), datetime.min.time(), tzinfo=UTC)
+            executed_today = await db.scalar(
+                select(func.coalesce(func.sum(PreparedTransfer.amount), 0))
+                .join(
+                    TransferExecution,
+                    TransferExecution.proposed_action_id == PreparedTransfer.proposed_action_id,
+                )
+                .where(
+                    PreparedTransfer.tenant_id == scope.tenant_id,
+                    PreparedTransfer.source_account_token == account.account_token,
+                    TransferExecution.executed_at >= day_start,
+                    TransferExecution.status.in_(["ACCEPTED", "SETTLED"]),
+                )
+            )
+            if Decimal(executed_today or 0) + prepared.amount > account.daily_limit:
+                raise BankDemoDomainError("Amount exceeds the remaining daily execution limit.")
+
+            now = datetime.now(UTC)
+            execution_id = f"exec_demo_{uuid4().hex[:16]}"
+            bank_reference = f"DBR-{now:%Y%m%d}-{uuid4().hex[:10].upper()}"
+            journal_id = f"jrnl_demo_{uuid4().hex[:16]}"
+            execution = TransferExecution(
+                execution_id=execution_id,
+                proposed_action_id=prepared.proposed_action_id,
+                tenant_id=scope.tenant_id,
+                user_id=scope.user_id,
+                idempotency_key=client_idempotency_key,
+                canonical_action_hash=prepared.canonical_action_hash,
+                guardian_decision_id=scope.guardian_decision_id,
+                authorization_id=scope.authorization_id,
+                request_hash=scope.request_hash,
+                bank_reference=bank_reference,
+                status="SETTLED",
+                reconciliation_required=False,
+                executed_at=now,
+                settled_at=now,
+            )
+            account.current_balance -= prepared.amount
+            account.available_balance -= prepared.amount
+            prepared.status = "SETTLED"
+            db.add(execution)
+            db.add(
+                Transaction(
+                    id=str(uuid4()),
+                    account_token=account.account_token,
+                    booked_on=date.today(),
+                    direction="DEBIT",
+                    amount=prepared.amount,
+                    currency=prepared.currency,
+                    category="GUARDIAN_AUTHORIZED_TRANSFER",
+                    description=f"Synthetic transfer to {beneficiary.owner_name}",
+                    reference=bank_reference,
+                )
+            )
+            ledger_entries = [
+                LedgerEntry(
+                    id=str(uuid4()),
+                    execution_id=execution_id,
+                    journal_id=journal_id,
+                    line_number=1,
+                    ledger_account="DISBURSEMENT_CLEARING",
+                    entry_type="DEBIT",
+                    amount=prepared.amount,
+                    currency=prepared.currency,
+                ),
+                LedgerEntry(
+                    id=str(uuid4()),
+                    execution_id=execution_id,
+                    journal_id=journal_id,
+                    line_number=2,
+                    ledger_account="BANK_CASH_CONTROL",
+                    entry_type="CREDIT",
+                    amount=prepared.amount,
+                    currency=prepared.currency,
+                ),
+            ]
+            db.add_all(ledger_entries)
+            self._audit(
+                db,
+                scope,
+                "SETTLED",
+                {
+                    "proposed_action_id": prepared.proposed_action_id,
+                    "execution_id": execution_id,
+                    "bank_reference": bank_reference,
+                    "guardian_decision_id": scope.guardian_decision_id,
+                    "authorization_id": scope.authorization_id,
+                    "journal_id": journal_id,
+                    "resulting_available_balance": str(account.available_balance),
+                },
+            )
+            await db.flush()
+            result = self._execution_projection(execution, ledger_entries)
+            result["resulting_available_balance"] = str(account.available_balance)
+        demo_events.publish(
+            "transfer.settled",
+            {
+                "proposed_action_id": proposed_action_id,
+                "execution_id": result["execution_id"],
+                "status": result["status"],
+            },
+        )
+        return result
 
     @staticmethod
     async def _account(db: Any, scope: RuntimeScope, token: str) -> Account:
@@ -355,8 +602,62 @@ class BankDemoService:
             "rail": value.rail,
             "purpose": value.purpose,
             "expires_at": expires.isoformat(),
-            "execution_available": False,
-            "security_flags": ["SYNTHETIC_DATA", "PREPARATION_ONLY"],
+            "execution_available": True,
+            "security_flags": ["SYNTHETIC_DATA", "GUARDIAN_AUTH_REQUIRED"],
+        }
+
+    @staticmethod
+    def _action_document(value: PreparedTransfer) -> dict[str, Any]:
+        return {
+            "tenant_id": value.tenant_id,
+            "user_id": value.user_id,
+            "source_account_token": value.source_account_token,
+            "beneficiary_token": value.beneficiary_token,
+            "amount": str(value.amount),
+            "currency": value.currency,
+            "rail": value.rail,
+            "purpose": value.purpose,
+            "client_idempotency_key": value.idempotency_key,
+        }
+
+    @staticmethod
+    def _execution_projection(
+        value: TransferExecution, ledger_entries: list[LedgerEntry]
+    ) -> dict[str, Any]:
+        executed_at = value.executed_at
+        if executed_at.tzinfo is None:
+            executed_at = executed_at.replace(tzinfo=UTC)
+        settled_at = value.settled_at
+        if settled_at is not None and settled_at.tzinfo is None:
+            settled_at = settled_at.replace(tzinfo=UTC)
+        return {
+            "status": value.status,
+            "execution_id": value.execution_id,
+            "proposed_action_id": value.proposed_action_id,
+            "bank_reference": value.bank_reference,
+            "canonical_action_hash": value.canonical_action_hash,
+            "guardian_decision_id": value.guardian_decision_id,
+            "authorization_id": value.authorization_id,
+            "executed_at": executed_at.isoformat(),
+            "settled_at": settled_at.isoformat() if settled_at else None,
+            "reconciliation_required": value.reconciliation_required,
+            "ledger": [
+                {
+                    "journal_id": entry.journal_id,
+                    "line_number": entry.line_number,
+                    "ledger_account": entry.ledger_account,
+                    "entry_type": entry.entry_type,
+                    "amount": str(entry.amount),
+                    "currency": entry.currency,
+                }
+                for entry in ledger_entries
+            ],
+            "security_flags": [
+                "SYNTHETIC_DATA",
+                "GUARDIAN_AUTHORIZATION_CONSUMED",
+                "IDEMPOTENT_EXECUTION",
+                "LEDGER_BALANCED",
+            ],
         }
 
     def _receipt(self, scope: RuntimeScope, kind: str, refs: list[str]) -> str:

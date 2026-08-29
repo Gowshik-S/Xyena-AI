@@ -4,9 +4,10 @@ This folder is an isolated, database-backed demonstration bank connected to the 
 Gateway. Every record is synthetic. The service does **not** connect to a real bank, Account
 Aggregator, payment rail, credential, account, beneficiary, or source of funds.
 
-Its financial boundary is deliberate: tools can read synthetic evidence and prepare a canonical
-transfer proposal, but no tool can execute a payment, alter a beneficiary, place a hold, reverse a
-transaction, or change an account balance.
+Its financial boundary is deliberate: tools can read synthetic evidence, prepare a canonical
+transfer proposal and execute it against synthetic balances only after Xyena Guardian has approved
+and consumed an exact-action authorization. No tool can reach a real payment rail, alter a real bank
+account, change a beneficiary, place a hold or reverse a transaction.
 
 ## What is included
 
@@ -18,6 +19,9 @@ transaction, or change an account balance.
 - SQLite persistence with deterministic synthetic seed data;
 - an audit event for each successful scoped operation;
 - an idempotent, expiring transfer-preparation record and canonical action hash;
+- privileged transfer execution with mandatory human Guardian approval and authorization attestation;
+- atomic synthetic balance debit, bank transaction and balanced double-entry journal;
+- idempotent settlement receipt, status lookup and live dashboard event;
 - a registration utility that performs discovery, reviewed activation, and policy activation through
   the Xyena control API;
 - a responsive light-theme operations frontend at `/` that visibly labels all data as synthetic.
@@ -52,10 +56,13 @@ request hash. The bank demo rejects direct MCP tool calls that do not have a val
 | `bank.beneficiaries.verify` | `beneficiaries.verify` | `SENSITIVE_READ` | Synthetic verification evidence |
 | `bank.limits.get` | `limits.get` | `SENSITIVE_READ` | Limits and disabled-execution signal |
 | `bank.transfers.prepare` | `transfers.prepare` | `MUTATE` | Idempotent proposal only |
+| `bank.transfers.execute` | `transfers.execute` | `PRIVILEGED` | Human-approved synthetic debit and settlement |
 | `bank.transfers.get_status` | `transfers.get_status` | `SENSITIVE_READ` | Prepared proposal status |
 
-All seven tools use `approval_mode=POLICY`, are restricted to `xyena-supervisor`, and pass through
-Guardian because no bank capability is classified as an ordinary public read.
+All eight tools are restricted to `xyena-supervisor` and pass through Guardian because no bank
+capability is classified as an ordinary public read. `bank.transfers.execute` is additionally
+registered as `PRIVILEGED` with `approval_mode=ALWAYS`; the MCP Gateway consumes the short-lived,
+single-use authorization and signs that fact into the bank runtime envelope before execution.
 
 ## Synthetic scope and fixtures
 
@@ -152,13 +159,15 @@ Implemented and ready:
 - signed per-user runtime context;
 - consented evidence reads;
 - beneficiary and limit checks;
-- transfer preparation/status only;
+- transfer preparation, human-approved execution and status;
+- synthetic balance mutation, transaction record and balanced settlement journal;
+- SSE-driven operations-console refresh after committed settlement;
 - synthetic audit trail and dashboard.
 
 Intentionally absent:
 
 - real bank or Account Aggregator integration;
-- payment execution or balance mutation;
+- real bank/payment-rail execution or real balance mutation;
 - beneficiary creation/update;
 - holds, releases, reversals, mandates, or credentials;
 - GST, lender, dealer, wallet, portfolio, DeFi, or any other demo application.

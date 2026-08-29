@@ -1,7 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -82,6 +92,46 @@ class PreparedTransfer(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TransferExecution(Base):
+    __tablename__ = "transfer_executions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "idempotency_key"),
+        UniqueConstraint("authorization_id"),
+    )
+
+    execution_id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    proposed_action_id: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    tenant_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    canonical_action_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    guardian_decision_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    authorization_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    bank_reference: Mapped[str] = mapped_column(String(80), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False)
+    reconciliation_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    executed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class LedgerEntry(Base):
+    __tablename__ = "ledger_entries"
+    __table_args__ = (UniqueConstraint("journal_id", "line_number"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    execution_id: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    journal_id: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    line_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    ledger_account: Mapped[str] = mapped_column(String(80), nullable=False)
+    entry_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
 
 class AuditEvent(Base):

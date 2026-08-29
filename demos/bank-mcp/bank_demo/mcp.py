@@ -7,7 +7,6 @@ from mcp.server.mcpserver import Context
 from .security import verify_runtime_scope
 from .service import bank_service
 
-
 mcp = MCPServer("xyena-synthetic-bank-demo")
 
 
@@ -35,15 +34,11 @@ async def transactions_list(
 ) -> dict[str, Any]:
     """List up to 100 synthetic transactions within a maximum 90-day window."""
     scope = verify_runtime_scope(ctx, "bank.transactions.list")
-    return await bank_service.list_transactions(
-        scope, account_token, from_date, to_date, limit
-    )
+    return await bank_service.list_transactions(scope, account_token, from_date, to_date, limit)
 
 
 @mcp.tool(name="beneficiaries.verify")
-async def beneficiaries_verify(
-    beneficiary_token: str, ctx: Context
-) -> dict[str, Any]:
+async def beneficiaries_verify(beneficiary_token: str, ctx: Context) -> dict[str, Any]:
     """Return synthetic beneficiary verification evidence for an opaque token."""
     scope = verify_runtime_scope(ctx, "bank.beneficiaries.verify")
     return await bank_service.verify_beneficiary(scope, beneficiary_token)
@@ -80,14 +75,25 @@ async def transfers_prepare(
 
 
 @mcp.tool(name="transfers.get_status")
-async def transfers_get_status(
-    proposed_action_id: str, ctx: Context
-) -> dict[str, Any]:
+async def transfers_get_status(proposed_action_id: str, ctx: Context) -> dict[str, Any]:
     """Read the status of a synthetic prepared action in the signed user scope."""
     scope = verify_runtime_scope(ctx, "bank.transfers.get_status")
     return await bank_service.transfer_status(scope, proposed_action_id)
 
 
-mcp_app = mcp.streamable_http_app(
-    streamable_http_path="/", stateless_http=True, json_response=True
-)
+@mcp.tool(name="transfers.execute")
+async def transfers_execute(
+    proposed_action_id: str,
+    client_idempotency_key: str,
+    ctx: Context,
+) -> dict[str, Any]:
+    """Execute one synthetic transfer after consumed exact-action Guardian authorization."""
+    scope = verify_runtime_scope(ctx, "bank.transfers.execute")
+    return await bank_service.execute_transfer(
+        scope,
+        proposed_action_id,
+        client_idempotency_key,
+    )
+
+
+mcp_app = mcp.streamable_http_app(streamable_http_path="/", stateless_http=True, json_response=True)

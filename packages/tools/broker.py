@@ -8,22 +8,22 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.audit import append_audit_event, enqueue_outbox
-from packages.contracts.tools import (
-    CanonicalToolRequest,
-    SafeToolResult,
-    ToolCallStatus,
-    ToolCallResume,
-    ToolCallSubmit,
-    ToolRiskClass,
-)
+from packages.contracts.context import RuntimeContext
 from packages.contracts.guardian import (
     GuardianEvaluationRequest,
     GuardianOutcome,
     ToolPolicySnapshot,
 )
+from packages.contracts.tools import (
+    CanonicalToolRequest,
+    SafeToolResult,
+    ToolCallResume,
+    ToolCallStatus,
+    ToolCallSubmit,
+    ToolRiskClass,
+)
 from packages.guardian import GuardianClient, GuardianClientError
 from packages.mcp_gateway.client import RemoteMCPClient, RemoteServerConfig
-from packages.contracts.context import RuntimeContext
 from packages.persistence.models.mcp import (
     MCPCallAttempt,
     MCPServer,
@@ -168,7 +168,8 @@ class ToolBroker:
                 return self._safe_result(result, call.id)
             if not decision.authorization_token or not decision.authorization_id:
                 raise ToolBrokerError(
-                    "AUTHORIZATION_MISSING", "Guardian allowed a protected call without authorization."
+                    "AUTHORIZATION_MISSING",
+                    "Guardian allowed a protected call without authorization.",
                 )
             try:
                 consumed = await self.guardian_client.consume(
@@ -314,11 +315,15 @@ class ToolBroker:
         if set(policy.required_consents) - consent_ids:
             raise ToolBrokerError("CONSENT_REQUIRED", "Required consent is not present.")
         if version.side_effects and not request.intent.idempotency_key:
-            raise ToolBrokerError("IDEMPOTENCY_REQUIRED", "Mutating tools require an idempotency key.")
+            raise ToolBrokerError(
+                "IDEMPOTENCY_REQUIRED", "Mutating tools require an idempotency key."
+            )
 
     @staticmethod
     def _validate_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> None:
-        errors = sorted(Draft202012Validator(schema or {}).iter_errors(arguments), key=lambda e: e.path)
+        errors = sorted(
+            Draft202012Validator(schema or {}).iter_errors(arguments), key=lambda e: e.path
+        )
         if errors:
             detail = "; ".join(error.message for error in errors[:5])
             raise ToolBrokerError("TOOL_ARGUMENTS_INVALID", detail)
@@ -347,7 +352,8 @@ class ToolBroker:
             return None
         if existing.request_hash != request_hash:
             raise ToolBrokerError(
-                "IDEMPOTENCY_CONFLICT", "The idempotency key was already used with a different request."
+                "IDEMPOTENCY_CONFLICT",
+                "The idempotency key was already used with a different request.",
             )
         result = await db.scalar(select(MCPToolResult).where(MCPToolResult.call_id == existing.id))
         if result is None:
@@ -399,18 +405,25 @@ class ToolBroker:
                     "canonical_name": call.canonical_name,
                     "purpose": call.purpose,
                     "request_hash": call.request_hash,
+                    "guardian_decision_id": str(call.guardian_decision_id)
+                    if call.guardian_decision_id
+                    else None,
+                    "authorization_id": str(call.authorization_id)
+                    if call.authorization_id
+                    else None,
+                    "authorization_consumed": call.authorization_id is not None,
                 }
                 projection = await self.remote_client.call_tool(
                     remote_config,
                     tool.original_name,
                     request.normalized_arguments,
-                    meta=self.remote_client.signed_runtime_meta(
-                        remote_config, runtime_envelope
-                    ),
+                    meta=self.remote_client.signed_runtime_meta(remote_config, runtime_envelope),
                 )
             encoded = json.dumps(projection, default=str, separators=(",", ":")).encode()
             if len(encoded) > policy.maximum_result_bytes:
-                raise ToolBrokerError("RESULT_TOO_LARGE", "The tool result exceeded its policy limit.")
+                raise ToolBrokerError(
+                    "RESULT_TOO_LARGE", "The tool result exceeded its policy limit."
+                )
             attempt.status = "SUCCEEDED"
             attempt.completed_at = datetime.now(UTC)
             call.status = ToolCallStatus.SUCCEEDED.value
@@ -474,7 +487,9 @@ class ToolBroker:
         flags: list[str] | None = None,
     ) -> MCPToolResult:
         flags = flags or []
-        normalized_hash = canonical_hash({"status": status, "projection": projection, "flags": flags})
+        normalized_hash = canonical_hash(
+            {"status": status, "projection": projection, "flags": flags}
+        )
         result = MCPToolResult(
             id=uuid4(),
             tenant_id=call.tenant_id,

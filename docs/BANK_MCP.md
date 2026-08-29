@@ -10,7 +10,10 @@ The architecture previously separated `Banking Data MCP` and `Payment/Ledger MCP
 2. financial-action preparation;
 3. Guardian-authorized execution.
 
-The server is not implemented yet. This document defines the contract that should be implemented under `apps/mcp-server` with shared schemas in `packages/contracts` and connector implementations in `packages/tools`.
+The production bank/payment connector remains a specification. A runnable synthetic implementation
+under `demos/bank-mcp` now covers evidence, preparation, exact-action Guardian authorization,
+idempotent execution, synthetic balance mutation, double-entry posting and settlement status. It
+does not connect to a real bank, Account Aggregator or payment rail.
 
 Configuration profiles and validation rules are defined in [BANK_MCP_CONFIG.md](./BANK_MCP_CONFIG.md).
 

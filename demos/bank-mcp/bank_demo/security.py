@@ -26,6 +26,9 @@ class RuntimeScope:
     canonical_name: str
     purpose: str
     request_hash: str
+    guardian_decision_id: str | None = None
+    authorization_id: str | None = None
+    authorization_consumed: bool = False
 
 
 def verify_runtime_scope(ctx: Context, expected_tool: str) -> RuntimeScope:
@@ -63,4 +66,9 @@ def verify_runtime_scope(ctx: Context, expected_tool: str) -> RuntimeScope:
         raise BankDemoSecurityError("Runtime scope tool name does not match this handler.")
     if not str(envelope["purpose"]).strip():
         raise BankDemoSecurityError("A signed purpose is required.")
-    return RuntimeScope(**{key: str(envelope[key]) for key in required})
+    values = {key: str(envelope[key]) for key in required}
+    for key in ("guardian_decision_id", "authorization_id"):
+        value = envelope.get(key)
+        values[key] = str(value) if value else None
+    values["authorization_consumed"] = envelope.get("authorization_consumed") is True
+    return RuntimeScope(**values)

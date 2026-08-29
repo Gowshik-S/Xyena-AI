@@ -99,14 +99,15 @@ Implemented and pushed after the original five core phases:
 - separate MCP review credential, reviewed server/tool activation endpoints, immutable schema-version
   activation, exact egress-host allowlists and HMAC-signed per-user runtime scope;
 - isolated `demos/bank-mcp` Python service with OpenAPI 3.1 and MCP v2 Streamable HTTP;
-- seven synthetic bank tools for account, balance, transaction, beneficiary and limit evidence plus
-  idempotent transfer preparation/status;
+- eight synthetic bank tools for account, balance, transaction, beneficiary and limit evidence plus
+  idempotent transfer preparation, human-approved execution and status;
 - active synthetic consent, tenant/user resource enforcement, audit events, expiring canonical action
   hashes and aggregate preparation limits;
-- explicit `execution_available=false` boundary with no real payment or balance mutation capability;
+- explicit synthetic-only execution boundary with consumed Guardian authorization, exact action-hash
+  validation, atomic balance mutation, bank transaction, balanced journal and idempotent receipt;
 - reviewed registration utility, direct development connection checker and independent Docker Compose;
 - responsive light-theme bank operations frontend with dedicated account, transaction, beneficiary,
-  prepared-action and MCP-connection pages.
+  prepared-action, authorization-seal, settlement-ledger and MCP-connection views plus SSE refresh.
 
 Primary commits: `7a33fc6`, `ac5490c`, `6347582`, and `032c2ed`.
 
@@ -119,7 +120,7 @@ Primary commits: `7a33fc6`, `ac5490c`, `6347582`, and `032c2ed`.
 | `apps/mcp_server` | Hosted core MCP, remote registry/discovery, canonical broker and approved resume | Service token, PostgreSQL, Guardian URL, approved server records and secret references |
 | `apps/guardian` | Policy decisions, approvals, signed exact-request authorizations | Service token, PostgreSQL, Ed25519 signing and verification keys |
 | `apps/web` | Pre-existing web experience only | It must be connected only to `apps/api`; its demo simulation was not built or tested here |
-| `demos/bank-mcp` | Synthetic bank evidence, preparation-only tools and operations UI | Separate demo tokens, Xyena service/admin credentials and reviewed MCP registration |
+| `demos/bank-mcp` | Synthetic bank evidence, protected transfer execution, settlement ledger and live operations UI | Separate demo tokens, Xyena service/admin credentials, Guardian keys and reviewed MCP registration |
 
 ## Mandatory deployment gates
 
@@ -146,8 +147,8 @@ Before calling the deployment production-ready:
 
 - runnable GST/e-Invoice, Delivery, Business Registry, Buyer/ERP, Funder, Ledger or dealer demos;
 - real bank, Account Aggregator, payment-rail, lending, portfolio or DeFi integrations;
-- payment execution, balance mutation, beneficiary mutation, holds, reversals or real credentials in
-  the synthetic bank demo;
+- real payment-rail execution, real bank balance mutation, beneficiary mutation, holds, reversals or
+  real credentials in the synthetic bank demo;
 - agent/domain implementations for Invoice, Delivery, Payment, Credit, Decision and Funding beyond
   their documented contracts and inactive catalog entries;
 - automatic activation of OpenAPI operations or newly discovered MCP tools;

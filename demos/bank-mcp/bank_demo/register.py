@@ -6,7 +6,6 @@ from urllib.parse import urlparse
 import httpx
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 
@@ -26,6 +25,11 @@ POLICIES: dict[str, dict[str, Any]] = {
     },
     "bank.limits.get": {"risk_class": "SENSITIVE_READ", "side_effects": False},
     "bank.transfers.prepare": {"risk_class": "MUTATE", "side_effects": True},
+    "bank.transfers.execute": {
+        "risk_class": "PRIVILEGED",
+        "side_effects": True,
+        "approval_mode": "ALWAYS",
+    },
     "bank.transfers.get_status": {
         "risk_class": "SENSITIVE_READ",
         "side_effects": False,
@@ -54,9 +58,7 @@ async def register() -> None:
         raise RuntimeError("BANK_DEMO_PUBLIC_MCP_URL must include a hostname.")
 
     async with httpx.AsyncClient(base_url=control_url, timeout=90) as client:
-        response = await client.get(
-            "/internal/mcp/servers", params=params, headers=service_headers
-        )
+        response = await client.get("/internal/mcp/servers", params=params, headers=service_headers)
         response.raise_for_status()
         server = next((item for item in response.json() if item["label"] == "bank"), None)
         if server is not None and (
@@ -136,7 +138,7 @@ async def register() -> None:
                     "required_purposes": [],
                     "required_consents": [],
                     "allowed_agents": ["xyena-supervisor"],
-                    "approval_mode": "POLICY",
+                    "approval_mode": policy.get("approval_mode", "POLICY"),
                     "side_effects": policy["side_effects"],
                     "idempotent": True,
                     "parallel_allowed": False,
