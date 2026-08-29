@@ -178,7 +178,7 @@ function LiveOperations() {
       setSnapshot(receipt)
       setProgress(platforms.map((platform) => {
         const matching = receipt.steps.find((step) => step.tool_name === platform.tool)
-        return { ...platform, state: matching?.status === 'verified' ? 'complete' : 'failed' }
+        return { ...platform, state: matching?.status === 'verified' && receipt.evidence_matches?.[platform.tool] ? 'complete' : 'failed' }
       }))
     } catch (requestError) {
       setError(requestError.message || 'The live operations snapshot did not complete.')
@@ -248,7 +248,7 @@ function LiveOperations() {
           </form>
 
           <div className="ops-progress" aria-live="polite">
-            <header><small>Execution rail</small><strong>{running ? 'Reading live systems' : snapshot ? `${snapshot.successful_calls}/${snapshot.total_calls} calls returned` : 'Ready for a judge run'}</strong></header>
+            <header><small>Execution rail</small><strong>{running ? 'Reading live systems' : snapshot ? `${snapshot.evidence_matched_calls}/${snapshot.total_calls} source records matched` : 'Ready for a judge run'}</strong></header>
             <ol>
               {(progress.length ? progress : platforms.map((platform) => ({ ...platform, state: 'queued' }))).map((platform) => (
                 <li className={`is-${platform.state}`} key={platform.id}>
@@ -263,6 +263,17 @@ function LiveOperations() {
         </section>
 
         {error && <div className="ops-error" role="alert"><strong>Snapshot not completed</strong><span>{error}</span></div>}
+
+        {snapshot && (
+          <section className={`ops-funding-gate ${snapshot.evidence_complete ? 'is-read-only' : 'is-blocked'}`} aria-live="polite">
+            <div>
+              <small>Financial action gate</small>
+              <strong>{snapshot.evidence_complete ? 'Evidence complete — read-only result' : 'Funding blocked — source evidence missing'}</strong>
+              <span>{snapshot.evidence_complete ? 'All requested records were found, but this snapshot cannot initiate a payment.' : 'Registry, invoice, ERP, delivery and bank evidence must all match before any funding workflow can continue.'}</span>
+            </div>
+            <p><b>{formatInr(snapshot.amount_transferred)}</b><span>Transferred by this run</span></p>
+          </section>
+        )}
 
         <section className="ops-results" aria-label="Live platform results">
           <header>
@@ -303,7 +314,7 @@ function LiveOperations() {
 
         <section className="ops-bank-panel">
           <header>
-            <div><small>Bank / live credit tape</small><h2>Credits received in the selected account</h2></div>
+            <div><small>Bank / historical source records</small><h2>Existing synthetic credits in the selected account</h2><p>These entries existed before this read. Running the snapshot does not transfer money.</p></div>
             <a href="https://bank.gowshik.in/transactions" target="_blank" rel="noreferrer">Open full bank ledger ↗</a>
           </header>
           <div className="ops-credit-list">
@@ -313,7 +324,7 @@ function LiveOperations() {
                 <time>{credit.booked_on}</time>
                 <div><strong>{credit.description}</strong><small>{credit.reference} · {credit.category}</small></div>
                 <span>+ {formatInr(credit.amount)}</span>
-                <em>LIVE SOURCE</em>
+                <em>SOURCE RECORD</em>
               </article>
             ))}
           </div>

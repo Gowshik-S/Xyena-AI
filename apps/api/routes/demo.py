@@ -290,6 +290,11 @@ class OperationsSnapshot(ContractModel):
     steps: list[AgentTraceStep]
     successful_calls: int
     total_calls: int
+    evidence_matched_calls: int
+    evidence_matches: dict[str, bool]
+    evidence_complete: bool
+    funding_gate: Literal["READ_ONLY_EVIDENCE_COMPLETE", "BLOCKED_MISSING_EVIDENCE"]
+    amount_transferred: Literal["0.00"] = "0.00"
     source_apps: dict[str, str]
     scope: Literal["synthetic-live-operations"] = "synthetic-live-operations"
     state_changed: Literal[False] = False
@@ -643,6 +648,28 @@ def _source_data(step: AgentTraceStep) -> dict[str, Any]:
         return {}
     data = step.output_data.get("data")
     return data if isinstance(data, dict) else {}
+
+
+def _operation_step_has_evidence(step: AgentTraceStep) -> bool:
+    """Separate a successful tool execution from a successful source-record match."""
+    if step.status != "verified" or not step.tool_name:
+        return False
+    data = _source_data(step)
+    if str(data.get("status", "")).upper() in {"NOT_FOUND", "FAILED", "ERROR"}:
+        return False
+    if step.tool_name == "registry.businesses.get":
+        return bool(data.get("business_id") and data.get("legal_name"))
+    if step.tool_name == "gst.invoices.search":
+        return bool(data.get("items"))
+    if step.tool_name == "erp.purchase_orders.get":
+        return bool(data.get("po_number") or data.get("order_number"))
+    if step.tool_name == "delivery.deliveries.find_by_invoice":
+        return bool(data.get("deliveries"))
+    if step.tool_name == "bank.accounts.get_balance":
+        return bool(data.get("account_token") and data.get("available_balance") is not None)
+    if step.tool_name == "bank.transactions.list":
+        return bool(data.get("account_token") and isinstance(data.get("transactions"), list))
+    return False
 
 
 def _calculate_trace_risk(steps: list[AgentTraceStep]) -> TraceRiskAssessment:
@@ -1240,10 +1267,17 @@ async def create_operations_snapshot(
         steps.append(step)
 
     successful_calls = sum(step.status == "verified" for step in steps)
+    evidence_matches = {
+        str(step.tool_name): _operation_step_has_evidence(step)
+        for step in steps
+        if step.tool_name
+    }
+    evidence_matched_calls = sum(evidence_matches.values())
+    evidence_complete = evidence_matched_calls == len(steps)
     overall_status: Literal["verified", "partial", "failed"]
-    if successful_calls == len(steps):
+    if evidence_complete:
         overall_status = "verified"
-    elif successful_calls:
+    elif evidence_matched_calls:
         overall_status = "partial"
     else:
         overall_status = "failed"
@@ -1259,6 +1293,12 @@ async def create_operations_snapshot(
         steps=steps,
         successful_calls=successful_calls,
         total_calls=len(steps),
+        evidence_matched_calls=evidence_matched_calls,
+        evidence_matches=evidence_matches,
+        evidence_complete=evidence_complete,
+        funding_gate=(
+            "READ_ONLY_EVIDENCE_COMPLETE" if evidence_complete else "BLOCKED_MISSING_EVIDENCE"
+        ),
         source_apps={
             "registry": "https://registry.gowshik.in/businesses",
             "gst": "https://gst.gowshik.in/invoices",
